@@ -1,0 +1,23 @@
+.header {
+  width: 100%;
+  padding: 2rem 0;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.avatarContainer {
+  display: flex;
+}
+
+.linkContainer {
+  display: flex;
+  gap: 1em;
+}
+
+.linkHover:hover {
+  opacity: 1 !important;
+}

@@ -1,0 +1,9 @@
+.arrowLink {
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+}
+
+.arrowLink:hover {
+  opacity: 1;
+}

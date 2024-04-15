@@ -1,0 +1,9 @@
+.inlineLink {
+  color: #69B6E3;
+  text-decoration: underline;
+}
+
+.inlineLink:hover {
+  background-color: #69B6E3;
+  color: white !important;
+}
