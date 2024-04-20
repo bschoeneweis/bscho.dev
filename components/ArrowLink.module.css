@@ -2,6 +2,7 @@
   opacity: var(--text-faded-opacity);
   display: flex;
   align-items: center;
+  transition-duration: var(--transition-duration);
 }
 
 .arrowLink:hover {

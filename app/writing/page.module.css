@@ -1,19 +1,30 @@
 .postList {
-  list-style: none;
   margin-top: 1rem;
 }
 
 .postListItem {
-  margin-bottom: 2rem;
+  margin-bottom: 0.5rem;
+  padding: 10px;
+  border-radius: 5px;
+  transition-duration: var(--transition-duration);
 }
 
-.title {
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: var(--link-blue);
+.postListItem:hover {
+  background-color: rgba(211, 211 ,211, 0.1)
 }
 
-.subtitle {
+.titleWrapper {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+}
+
+@media (max-width: 700px) {
+  .titleWrapper {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+}
+
+.dateLabel {
   opacity: var(--text-faded-opacity);
-  margin-right: 1rem;
 }

@@ -10,28 +10,26 @@ export const metadata: Metadata = {
   title: 'Writing'
 };
 
-
-const DateLabel = ({ dateRaw }: { dateRaw: string }) => {
-  const date = parseISO(dateRaw);
-  return <time dateTime={dateRaw}>{format(date, 'LLLL d, yyyy')}</time>
-};
+const getDateString = (rawDate: string) => {
+  const parsedDate = parseISO(rawDate);
+  return format(parsedDate, 'LLLL d, yyyy');
+}
 
 export default function WritingIndex() {
   const posts = getAllPostsMetadata();
 
   return (
-    <ul className={styles.postList}>
+    <div className={styles.postList}>
       {posts.map(({ slug, date, title, tags }) => (
-        <li key={slug} className={styles.postListItem}>
-          <Link href={`/writing/${slug}`} className={styles.title}>
-            {title}
-          </Link>
-          <br />
-          <small className={styles.subtitle}>
-            <DateLabel dateRaw={date} /> &bull; {tags.join(', ')}
-          </small>
-        </li>
+        <Link key={slug} href={`/writing/${slug}`}>
+          <div className={styles.postListItem}>
+              <div className={styles.titleWrapper}>
+                <p className={styles.dateLabel}>{getDateString(date)}</p>
+                <p>{title}</p>
+              </div>
+          </div>
+        </Link>
       ))}
-    </ul>
+    </div>
   );
 }

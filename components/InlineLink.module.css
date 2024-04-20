@@ -1,6 +1,7 @@
 .inlineLink {
   color: var(--link-blue);
   text-decoration: underline;
+  transition-duration: var(--transition-duration);
 }
 
 .inlineLink:hover {
