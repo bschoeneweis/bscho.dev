@@ -13,6 +13,6 @@
 
 .caption {
   text-align: center;
-  opacity: 0.6;
+  opacity: var(--text-faded-opacity);
   padding: 1rem 0;
 }

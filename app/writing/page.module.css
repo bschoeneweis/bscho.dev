@@ -1,0 +1,19 @@
+.postList {
+  list-style: none;
+  margin-top: 1rem;
+}
+
+.postListItem {
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--link-blue);
+}
+
+.subtitle {
+  opacity: var(--text-faded-opacity);
+  margin-right: 1rem;
+}

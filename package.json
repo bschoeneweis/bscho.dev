@@ -1,5 +1,5 @@
 {
-  "name": "site-redesign",
+  "name": "bscho.dev",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,10 +10,16 @@
     "prepare": "husky install"
   },
   "dependencies": {
+    "date-fns": "^3.6.0",
     "geist": "^1.3.0",
+    "gray-matter": "^4.0.3",
     "next": "14.1.4",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "react-markdown": "^9.0.1",
+    "rehype-raw": "^7.0.0",
+    "remark": "^15.0.1",
+    "remark-html": "^16.0.1"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -25,6 +31,7 @@
     "husky": "^9.0.11",
     "lint-staged": "^15.2.2",
     "prettier": "^3.2.5",
+    "shiki": "^1.3.0",
     "typescript": "^5"
   },
   "lint-staged": {

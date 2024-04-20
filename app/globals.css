@@ -1,6 +1,8 @@
 :root {
   --max-width: 700;
   --border-radius: 12px;
+  --link-blue: #69B6E3;
+  --text-faded-opacity: 0.6;
 }
 
 * {
