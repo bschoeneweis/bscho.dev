@@ -23,6 +23,10 @@
     display: flex;
     flex-direction: column-reverse;
   }
+
+  .postListItem:hover {
+    background-color: initial;
+  }  
 }
 
 .dateLabel {

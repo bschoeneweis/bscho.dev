@@ -8,7 +8,7 @@ export default function Home() {
     <>
       <h1 className={styles.nameIntro}>Bradley Schoeneweis</h1>
       <p className={styles.bioParagraph}>I&apos;m a senior engineer at <InlineLink href='https://radar.com'>Radar</InlineLink> working remotely in <InlineLink href='https://radar.com/demo/maps#13.45/-97.33066148935688/32.75466640633965'>Fort Worth, TX</InlineLink>.</p>
-      <p className={styles.bioParagraph}>This is my stomping ground for occasional writing and references to interesting things i&apos;ve worked on.</p>
+      <p className={styles.bioParagraph}>This is my medium for occasional writing and references to things I find interesting.</p>
       <div className={styles.linkSection}>
         <ArrowLink href='https://www.linkedin.com/in/bradley-schoeneweis' isExternalLink>linkedin</ArrowLink>
         <ArrowLink href='https://github.com/bschoeneweis' isExternalLink>github</ArrowLink>
