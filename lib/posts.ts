@@ -1,8 +1,9 @@
 import fs from "fs";
 import path from "path";
 
-import html from "remark-html";
+import { parseISO, format } from 'date-fns'
 import matter from "gray-matter";
+import html from "remark-html";
 import { remark } from "remark";
 
 interface PostMatterMetadata {
@@ -72,4 +73,9 @@ export const getPost = async (slug: string): Promise<Post> => {
     markdownContent,
     ...data,
   } as Post;
+}
+
+export const getFormattedDateString = (rawDate: string) => {
+  const parsedDate = parseISO(rawDate);
+  return format(parsedDate, 'LLLL d, yyyy');
 }

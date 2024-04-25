@@ -32,3 +32,8 @@
 .dateLabel {
   opacity: var(--text-faded-opacity);
 }
+
+.dateLabel, .articleTitle {
+  padding: 0;
+  margin: 0;
+}

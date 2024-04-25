@@ -8,8 +8,6 @@
 
 * {
   box-sizing: border-box;
-  padding: 0;
-  margin: 0;
 }
 
 html,
@@ -23,6 +21,8 @@ body {
   height: 100%;
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
+  padding: 0;
+  margin: 0;
 }
 
 a {
@@ -30,8 +30,104 @@ a {
   text-decoration: none;
 }
 
+article > p > a {
+  color: var(--link-blue);
+}
+
+article > p > a:hover {
+  text-decoration: underline;
+}
+
+article > h2 {
+  margin-top: 1.75rem;
+  font-weight: 590;
+}
+
+article > h3 {
+  margin-top: 1.75rem;
+  font-weight: 590;
+}
+
+article > h2:first-of-type {
+  margin-top: inherit;
+}
+
+article > hr {
+  opacity: .3;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  border-width: 0.01rem;
+}
+
+ul ul {
+  margin: 4px 0;
+}
+
+blockquote {
+  background-color: rgba(255, 255, 255, 0.025);
+  border-left: 4px solid #ff3d98;
+  margin: 1.5em 5px;
+  padding: 5px;
+  border-radius: 5px;
+}
+
+blockquote > p {
+  margin-left: 10px;
+}
+
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
   }
+}
+
+code {
+  counter-reset: line;
+  font-size: .9em;
+  padding: 5px 0;
+  margin: 1.25rem 0;
+  overflow-wrap: break-word;
+  min-width: 100%;
+  overflow-x: scroll;
+}
+
+code > [data-line]::before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 1rem;
+  margin-right: 1.25rem;
+  text-align: right;
+  color: gray;
+  font-size: .8em;
+}
+
+code[data-line-numbers-max-digits="2"] > [data-line]::before {
+  width: 2rem;
+}
+
+code[data-line-numbers-max-digits="3"] > [data-line]::before {
+  width: 3rem;
+}
+
+code[data-theme="github-dark"] {
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 5px;
+}
+
+.inlineCode {
+  border: none;
+  font-variant-ligatures: none;
+  background-color: rgb(246, 249, 252, 0.1);
+  padding: 2px;
+  border-radius: 3px;
+}
+
+li {
+  margin-bottom: 2px;
+}
+
+h2 {
+  margin: 0;
+  padding: 0;
 }
