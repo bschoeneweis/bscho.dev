@@ -1,3 +1,7 @@
+.home {
+  max-height: 100%;
+}
+
 .nameIntro {
   font-size: 2rem;
   letter-spacing: -0.03em;
@@ -19,8 +23,9 @@
 
 /* Mobile */
 @media (max-width: 700px) {
-  .content {
-    padding: 4rem;
+  .nameIntro {
+    font-size: 1.75rem;
+    margin-bottom: 1.25rem;
   }
 }
 
