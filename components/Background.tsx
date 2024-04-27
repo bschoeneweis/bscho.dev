@@ -1,12 +1,10 @@
 import Image from 'next/image'
 import React from 'react'
 
-import background from '../public/background.svg'
-
 export const Background = () => (
   <Image
     alt="Background scribbles"
-    src={background}
+    src="/images/background.svg"
     quality={100}
     fill
     sizes="100vw"

@@ -59,40 +59,40 @@ Let's get started!
 ## Setting up the Slack App
 Open Slack, click **Add channels**, and create a new channel called `notifications`.  This is where our Slack app will post to once we set it up.
 
-![Create a Slack channel {priority}{1004x580}](/images/slack-webhook/create-channel.jpg)
+![Create a Slack channel](/images/posts/slack-webhook/create-channel.jpg)
 
 Now go to a web browser and head to https://api.slack.com/apps/.
 
 Click on **Create an App**
 
-![Create a Slack App {1004x497}](/images/slack-webhook/create-app.jpg)
+![Create a Slack App](/images/posts/slack-webhook/create-app.jpg)
 
 Select **From scratch**
 
-![Select From Scratch {1004x497}](/images/slack-webhook/from-scratch.jpg)
+![Select From Scratch](/images/posts/slack-webhook/from-scratch.jpg)
 
 Create a name for your app and select the workspace you just created your `notifications` channel in.
 
-![Choose an app name and workspace {1004x501}](/images/slack-webhook/app-and-workspace.jpg)
+![Choose an app name and workspace](/images/posts/slack-webhook/app-and-workspace.jpg)
 
 
 This will redirect you to the **Basic Information** tab for your app.  Here, we'll enable **Incoming Webhooks**.  As it states, this will enable us to post messages from an external source.  In this case, our platform.
 
-![Enable incoming webhooks {1004x497}](/images/slack-webhook/add-webhooks.jpg)
+![Enable incoming webhooks](/images/posts/slack-webhook/add-webhooks.jpg)
 
 
 Turn on **Activate Incoming Webhooks** and you will see additional details appear.  Towards the bottom, click on **Add New Webhook to Workspace**.
 
-![Add a new webhook to your workspace {1004x485}](/images/slack-webhook/add-new-webhook.jpg)
+![Add a new webhook to your workspace](/images/posts/slack-webhook/add-new-webhook.jpg)
 
 You will be redirected again to select which channel to post to.  Select the `notifications` channel that we previously created and press **Allow**.
 
-![Select a channel for your app {1004x498}](/images/slack-webhook/choose-channel.jpg)
+![Select a channel for your app](/images/posts/slack-webhook/choose-channel.jpg)
 
 
 This will redirect you back to your app configuration and you will see a webhook URL you can now post to.  This will also include a simple curl POST request you can test with if you'd like.  Copy the webhook URL for later, and remember to **keep it private**.  This is a public URL that anyone can post to.
 
-![Copy your webhook URL {680x506}](/images/slack-webhook/copy-url.jpg)
+![Copy your webhook URL](/images/posts/slack-webhook/copy-url.jpg)
 
 
 You can return to the **Basic Information** of your app settings in Slack to view more API credentials and also edit the look and feel of your new Slack bot.
@@ -196,7 +196,7 @@ python slack_webhook.py
 
 When you run this, you should see a message from you Slack bot appear in the `notifications` channel!
 
-![Hello world message in Slack {1004x675}](/images/slack-webhook/slack-first-message.jpg)
+![Hello world message in Slack](/images/posts/slack-webhook/slack-first-message.jpg)
 
 
 For our notifications to be more helpful, we may want to add links or other formatting.  To do this, we will write our notifications with HTML tags, and then parse these tags and convert them to the [Slack flavored Markdown](https://api.slack.com/reference/surfaces/formatting) called `mrkdwn`.
@@ -390,7 +390,7 @@ slack.send(slack_message)
 
 You should see the following message in your notifications channel.
 
-![Second message in Slack {680x140}](/images/slack-webhook/slack-format-message.jpg)
+![Second message in Slack](/images/posts/slack-webhook/slack-format-message.jpg)
 
 Looks pretty good!  _Note that you can still send plain text messages, you don't need to use HTML._
 
@@ -498,12 +498,12 @@ slack.send(slack_message, subject='You\'ve completed the tutorial!')
 
 You should see a notification appear with the following preview
 
-![Slack notification {453x101}](/images/slack-webhook/slack-popup.jpg)
+![Slack notification}](/images/posts/slack-webhook/slack-popup.jpg)
 
 
 and the following message in your channel.
 
-![Last message in Slack {680x159}](/images/slack-webhook/slack-last-message.jpg)
+![Last message in Slack](/images/posts/slack-webhook/slack-last-message.jpg)
 
 
 We have a custom Slack notification app!  You can place the `send` message calls all across your applications with related messages and now you can have a better pulse on user activity that developers and any other employees/stakeholders can easily access.

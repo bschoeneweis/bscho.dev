@@ -1,10 +1,10 @@
 import Image from 'next/image'
 import React from 'react'
 
-import waffle1 from '@/public/waffle1.jpg'
-import waffle2 from '@/public/waffle2.jpg'
-import waffle3 from '@/public/waffle3.jpg'
-import waffle4 from '@/public/waffle4.jpg'
+import waffle1 from '@/public/images/waffle1.jpg'
+import waffle2 from '@/public/images/waffle2.jpg'
+import waffle3 from '@/public/images/waffle3.jpg'
+import waffle4 from '@/public/images/waffle4.jpg'
 
 import styles from './page.module.css'
 

@@ -83,7 +83,7 @@ blockquote > p {
 
 code {
   counter-reset: line;
-  font-size: .9em;
+  font-size: .8em;
   padding: 5px 0;
   margin: 1.25rem 0;
   overflow-wrap: break-word;
@@ -96,10 +96,10 @@ code > [data-line]::before {
   content: counter(line);
   display: inline-block;
   width: 1rem;
-  margin-right: 1.25rem;
+  margin-right: 1rem;
   text-align: right;
   color: gray;
-  font-size: .8em;
+  font-size: .75em;
 }
 
 code[data-line-numbers-max-digits="2"] > [data-line]::before {
@@ -115,7 +115,13 @@ code[data-theme="github-dark"] {
   border-radius: 5px;
 }
 
-.inlineCode {
+figure[data-rehype-pretty-code-figure] {
+  margin: 0;
+  width: 100%;
+}
+
+/* hack for inline code */
+code:not([data-theme="github-dark"]) {
   border: none;
   font-variant-ligatures: none;
   background-color: rgb(246, 249, 252, 0.1);

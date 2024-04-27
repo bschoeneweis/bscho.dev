@@ -1,8 +1,6 @@
 import Image from 'next/image'
 import React from 'react'
 
-import profile from '../public/profile.jpg'
-
 const AVATAR_SIZE = 50;
 
 export const Avatar = () => (
@@ -16,7 +14,7 @@ export const Avatar = () => (
   }}>
     <Image
       alt="Profile"
-      src={profile}
+      src="/images/profile.jpg"
       width={AVATAR_SIZE}
       height={AVATAR_SIZE}
     />

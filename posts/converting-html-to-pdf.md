@@ -76,9 +76,7 @@ _For our goal, AWS Lambda is a powerful tool for the following reasons_
 ### Issues with downloading the binary
 When I was first using this library, I was also using [`pdfkit`](https://pypi.org/project/pdfkit/) to drive this interaction.  At the top of the installation instructions, you can see the following warning:
 
-<p style="background-color: orange; padding: 7px 20px; text-align: center; border-radius: 6px;">
-<i>"<b>Warning!</b>&nbsp;Version in debian/ubuntu repos have reduced functionality (because it compiled without the wkhtmltopdf QT patches), such as adding outlines, headers, footers, TOC etc. To use this options you should install static binary from wkhtmltopdf site"</i>
-</p>
+> <b>Warning!</b>&nbsp;Version in debian/ubuntu repos have reduced functionality (because it compiled without the wkhtmltopdf QT patches), such as adding outlines, headers, footers, TOC etc. To use this options you should install static binary from wkhtmltopdf site
 
 When I first installed `wkhtmltopdf`, I didn't heed the warning and just ran the following:
 ```bash
@@ -121,7 +119,7 @@ Go to the [Layers section](https://us-east-2.console.aws.amazon.com/lambda/home?
 
 Then, add the following Layer configuration.
 
-![AWS Lambda layer configuration {priority}{680x488}](/images/converting-html-to-pdf/layer-configuration.jpg)
+![AWS Lambda layer configuration](/images/posts/converting-html-to-pdf/layer-configuration.jpg)
 
 Notice that we don't add a runtime here, this is intentional since our layer is a binary.
 
@@ -135,7 +133,7 @@ Navigate to the [Functions page](https://us-east-2.console.aws.amazon.com/lambda
 
 Select `Author from scratch`, and add the following configuration.
 
-![AWS Lambda function configuration {1004x475}](/images/converting-html-to-pdf/function-configuration.jpg)
+![AWS Lambda function configuration](/images/posts/converting-html-to-pdf/function-configuration.jpg)
 
 You can ignore the `Advanced settings` for our use case.
 
@@ -149,13 +147,11 @@ At the top of the Function Overview panel, click the `Layers` button right below
 
 Click on `Specify an ARN` and copy your Layer Version ARN from earlier.
 
-![AWS Lambda add layer {680x316}](/images/converting-html-to-pdf/add-layer.jpg)
+![AWS Lambda add layer](/images/posts/converting-html-to-pdf/add-layer.jpg)
 
 The reason why we need to specify our layer by ARN is because we didn't define a runtime above.
 
-<p style="background-color: #9bc2cf; padding: 7px 20px; text-align: center; border-radius: 6px;">
-<b>Important!</b> If your function generates a PDF with a bunch of black squares, this is likely because there is no font configuration within Lambda. To solve this, you can go to [this link](https://github.com/brandonlim-hs/fonts-aws-lambda-layer") that I mentioned earlier, and copy one of the AWS Linux Fonts ARNs for your region (or build from scratch), add the environment variable in the README, and repeat these steps to add a font layer.
-</p>
+> <b>Important!</b> If your function generates a PDF with a bunch of black squares, this is likely because there is no font configuration within Lambda. To solve this, you can go to [this link](https://github.com/brandonlim-hs/fonts-aws-lambda-layer") that I mentioned earlier, and copy one of the AWS Linux Fonts ARNs for your region (or build from scratch), add the environment variable in the README, and repeat these steps to add a font layer.
 
 ### Add permission to access your S3 bucket
 
@@ -165,7 +161,7 @@ Under Configuration, go to the Permissions section. Here, you will see your gene
 
 From here, click Attach policies, and add the **AmazonS3FullAccess** policy like so
 
-![AWS Lambda IAM policy {1004x461}](/images/converting-html-to-pdf/iam-policy.jpg)
+![AWS Lambda IAM policy](/images/posts/converting-html-to-pdf/iam-policy.jpg)
 
 Now that our function is configured, we can dive into the actual requirements and code!
 

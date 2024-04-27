@@ -19,8 +19,8 @@ _To understand and visualize the companies within my directly connected network 
 
 ### Results
 _Hover over the nodes for more details_
-- [The first network graph](/network/first-nx-graph.html)
-- [The second (more specific) network graph](/network/second-nx-graph.html)
+- [The first network graph](/html/network/first-nx-graph.html)
+- [The second (more specific) network graph](/html/network/second-nx-graph.html)
 
 ### Python dependencies
 ```python
@@ -214,7 +214,7 @@ nt.show('nx.html')
 
 And it's that simple! We specify a width and height, optional styling attributes, and then we can generate the network graph visual straight from what we created with NetworkX.
 
-Now we can see [the network we generated](/network/first-nx-graph.html).
+Now we can see [the network we generated](/html/network/first-nx-graph.html).
 
 You can hover over each node to see the total number of connections that work at the respective company, and below is a list of the positions held by your connections.
 
@@ -266,7 +266,7 @@ nt.repulsion()
 nt.show('nx.html')
 ```
 
-Now, let's look at the [updated results](/network/second-nx-graph.html).
+Now, let's look at the [updated results](/html/network/second-nx-graph.html).
 
 Much better! This is more readable and easier to interact with.
 

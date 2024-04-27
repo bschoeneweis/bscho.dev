@@ -315,13 +315,13 @@ We'll be using an apex domain (e.g. bradleyschoeneweis.com).
 3. Navigate to the **DNS** settings and under **Resource records**, click **Manage custom records**
 4. Refer to the [GitHub documentation](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site#configuring-an-apex-domain) for the official IP address list, but add the following `A` and `CNAME` records
 
-![DNS records](/images/rebuilding-my-blog/dns-records.jpg)
+![DNS records](/images/posts/rebuilding-my-blog/dns-records.jpg)
 
 ### Final steps and confirmation
 1. Head back to the **Pages** settings for your repository and check **Enforce HTTPS**
 2. After a bit of time has passed, run `dig www.mynewdomain.com +nostats +nocomments +nocmd` replace with your domain name and your output should look similar to the following:
 
-![dig output](/images/rebuilding-my-blog/dig-output.jpg)
+![dig output](/images/posts/rebuilding-my-blog/dig-output.jpg)
 
 Now your custom domain should be all set up with your GitHub pages blog! 🎉
 
