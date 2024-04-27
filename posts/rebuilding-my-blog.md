@@ -5,6 +5,8 @@ tags: ['javascript', 'nextjs']
 description: 'Rebuilding my blog from a Gatsby.js templated site to a custom Next.js site from scratch.'
 ---
 
+Update (4/27/2024): I have since rebuilt my blog (once again), and the tags links will no longer work.  I may write another post on the rewrite, but maybe not.
+
 ## Version `0.1.x`
 
 The first iteration of my blog was built using a pre-configured [GatsbyJS](https://www.gatsbyjs.com/) site template.  I chose a template ([Novela by Narative](https://novela.narative.co/)) that checked all my boxes for an easy tool to start sharing my writing.
