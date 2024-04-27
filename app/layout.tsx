@@ -1,5 +1,6 @@
 import './globals.css';
 
+import { Analytics } from "@vercel/analytics/react"
 import { GeistSans } from 'geist/font/sans';
 
 import type { Metadata } from 'next';
@@ -27,6 +28,7 @@ export default function RootLayout({
           <Header/>
           <section className={styles.section}>
             {children}
+            <Analytics />
           </section>
         </main>
       </body>
