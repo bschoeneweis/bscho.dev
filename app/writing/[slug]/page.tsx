@@ -1,11 +1,15 @@
 import { notFound } from 'next/navigation';
 
-import { getFormattedDateString, getPost } from '@/lib/posts';
+import { getAllPostSlugs, getFormattedDateString, getPost } from '@/lib/posts';
 
 import styles from './page.module.css';
 import { CustomMDX } from '@/components/CustomMDX';
 
 type PageProps = { params: { slug: string }}
+
+export async function generateStaticParams() {
+  return getAllPostSlugs();
+}
 
 export default async function Post({ params }: PageProps) {
   const { slug } = params;
