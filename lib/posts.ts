@@ -22,7 +22,7 @@ interface Post extends PostMatterMetadata {
 
 const postsPath = path.join(process.cwd(), 'posts');
 
-const getSlug = (fileName: string) => fileName.replace(/\.md$/, '');
+const getSlug = (fileName: string) => fileName.replace(/\.mdx$/, '');
 
 export const getAllPostsMetadata = (): PostMatterMetadata[] => {
   const files = fs.readdirSync(postsPath);
@@ -56,8 +56,12 @@ export const getAllPostSlugs = (): string[] => {
   return files.map(getSlug);
 }
 
-export const getPost = async (slug: string): Promise<Post> => {
-  const filePath = path.join(postsPath, `${slug}.md`);
+export const getPost = async (slug: string): Promise<Post | undefined> => {
+  const filePath = path.join(postsPath, `${slug}.mdx`);
+  if (!fs.existsSync(filePath)) {
+    return undefined;
+  }
+
   const contentString = fs.readFileSync(filePath, 'utf8');
 
   const matterResult = matter(contentString);
