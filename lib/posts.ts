@@ -51,9 +51,12 @@ export const getAllPostsMetadata = (): PostMatterMetadata[] => {
   return posts;
 }
 
-export const getAllPostSlugs = (): string[] => {
+export const getAllPostSlugs = (): { slug: string }[] => {
   const files = fs.readdirSync(postsPath);
-  return files.map(getSlug);
+  return files.map((fileName) => {
+    const slug = getSlug(fileName);
+    return { slug };
+  });
 }
 
 export const getPost = async (slug: string): Promise<Post | undefined> => {

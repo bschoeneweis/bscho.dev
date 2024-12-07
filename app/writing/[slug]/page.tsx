@@ -5,13 +5,14 @@ import { getAllPostSlugs, getFormattedDateString, getPost } from '@/lib/posts';
 import styles from './page.module.css';
 import { CustomMDX } from '@/components/CustomMDX';
 
-type PageProps = { params: { slug: string }}
+type Params = Promise<{ slug: string }>;
 
 export async function generateStaticParams() {
   return getAllPostSlugs();
 }
 
-export default async function Post({ params }: PageProps) {
+export default async function Post(props: { params: Params }) {
+  const params = await props.params;
   const { slug } = params;
   const postData = await getPost(slug);
 
