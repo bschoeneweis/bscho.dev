@@ -19,7 +19,7 @@ export const Header = () => {
     <header className={ styles.header }>
       <nav className={ styles.nav }>
         <div className={ styles.linkContainer }>
-        <Link
+          <Link
             href={`/`}
             style={{ opacity: getOpacity(pathname, '/') }}
             className={ styles.linkHover }
@@ -32,6 +32,13 @@ export const Header = () => {
             className={ styles.linkHover }
           >
             writing
+          </Link>
+          <Link
+            href={`/works`}
+            style={{ opacity: getOpacity(pathname, '/works') }}
+            className={ styles.linkHover }
+          >
+            works
           </Link>
         </div>
         <div className={ styles.avatarContainer }>
