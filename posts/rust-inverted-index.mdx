@@ -1,0 +1,83 @@
+---
+title: 'Building an inverted index from scratch in Rust'
+date: '2025-10-05'
+tags: ['rust', 'search']
+description: 'Creating a simple inverted index from scratch in Rust, from tokenization to querying.'
+---
+
+TODO:
+
+Recently at [Radar](https://radar.com), I've been working on search (forward geocoding / autocomplete for addresses, POIs, and regions), and writing lots of Rust.
+
+In order to dive a bit deeper into search fundamentals, I thought it would be interesting to dive into one of the most fundamental data structures in search, an [inverted index](https://en.wikipedia.org/wiki/Inverted_index) (sometimes referred to as a Posting List).
+
+## A quick primer
+An [inverted index](https://en.wikipedia.org/wiki/Inverted_index) is a fundamental data structure in the search world, powering text-based search for libraries like [Apache Lucene](https://lucene.apache.org/) and [Tantivy](https://github.com/quickwit-oss/tantivy).
+
+To illustrate an inverted index, it's helpful to contrast with a [forward index](https://en.wikipedia.org/wiki/Search_engine_indexing#The_forward_index).
+
+### Forward index
+
+A forward index maps documents to the set of terms they contain:
+
+| Document | Terms
+| -------- | ------------------------------------------------
+| 1        | the lord of the rings the fellowship of the ring
+| 2        | the lord of the rings the two towers
+| 3        | the lord of the rings the return of the king
+| ...      | ...
+| 10       | star wars episode vi return of the jedi
+
+Given this structure, you could imagine if we had a full catalog of movies (and maybe books as well), a query to find titles in a traditional forward index might look something like:
+
+```sql
+SELECT * FROM my_media WHERE title LIKE '%return%';
+```
+
+This query requires scanning over every document in the index and checking if the term exists.  This can quickly get out of hand as datasets grow and grow.
+
+### Inverted index
+
+An inverted index maps a set of terms to the documents they appear in:
+
+| Term         | Documents
+| ------------ | ----------
+| the          | 1, 2, 3, 10
+| lord         | 1, 2, 3
+| rings        | 1, 2, 3
+| fellowship   | 1
+| ring         | 1
+| two          | 2
+| towers       | 2
+| return       | 3, 10
+| of           | 1, 2, 3, 10
+| king         | 3
+| star         | 10
+| wars         | 10
+| episode      | 10
+| iv           | 10
+| jedi         | 10
+
+Here we see the terms mapped to the respective documents.
+
+The set of matching documents here is often called a **posting list** or postings (the structure on the right).
+
+The other commonly associated structure with an inverted index is the **dictionary**.
+
+The dictionary is the unique set of the terms that existing in the index.  It contains pointers from each term to its respective posting list for quick lookups.  Since the posting lists can be quite large, dictionaries are often kept in memory and point to the location of the posting list on disk.
+
+#### Searching
+Instead of a full index scan, we can now do a term-lookup in approximately constant time.  These faster lookups generally come at the cost of slower write speeds given the complexity of the indexing (we'll dive into this later), but the faster reads generally outweight the costs here.
+
+For example, we can search for `"return"` and see that documents `3` and `10` have a match.  This reduced our operation count from scanning `n` rows to reading the index and operating on the matching documents (which will almost always be much less than the total indexed rows).
+
+Since the result of the lookup is document ids (or the posting list), we can take advantage of set operations (`AND`, `OR`, `NOT`) to introduce more powerful querying paradigms.
+
+For example, we can support queries like `"rings" AND "return"` by doing lookups for both terms, and then taking the intersection: `[1, 2, 3] ∩ [3, 10] = [3]`.
+
+We can do the same for `OR` queries: `"rings" OR "fellowship"` by taking the union: `[1, 2, 3] ∪ [1] = [1, 2, 3]`.
+
+`NOT` queries can be supported by taking the set difference of _all_ of the document ids and the term posting list.  For example: `NOT "return"`: `[1, 2, 3, 10] \ [3, 10] = [1, 2]`.
+
+Now that we understand the basics, we can dive into a simple implementation.
+

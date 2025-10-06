@@ -152,11 +152,12 @@ h2 {
   border-radius: 0.5rem;
 }
 
+/* markdown table styling */
 table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  margin: 1.5rem 0;
+  margin: 0.5rem 0;
   font-family: inherit;
   background-color: #1f2937;
   border-radius: 0.5rem;
