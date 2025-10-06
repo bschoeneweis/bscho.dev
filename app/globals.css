@@ -145,3 +145,50 @@ h2 {
   margin: 0;
   padding: 0;
 }
+
+/* wrapper for mobile overflow scrolling, but need hidden overflow for the table for border radius */
+.table-container {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 1.5rem 0;
+  font-family: inherit;
+  background-color: #1f2937;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+th,
+td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+
+th {
+  background-color: #374151;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+td {
+  border-top: 1px solid #4b5563;
+  color: #d1d5db;
+}
+
+tr:nth-child(even) td {
+  background-color: #2d3748;
+}
+
+table::-webkit-scrollbar {
+  height: 6px;
+}
+
+table::-webkit-scrollbar-thumb {
+  background-color: #6b7280;
+  border-radius: 3px;
+}
