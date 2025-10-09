@@ -2,16 +2,14 @@
 title: 'Building an inverted index from scratch in Rust'
 date: '2025-10-05'
 tags: ['rust', 'search']
-description: 'Creating a simple inverted index from scratch in Rust, from tokenization to querying.'
+description: 'A brief primer on search, and building a simple inverted index from scratch in Rust, from tokenization to querying.'
 ---
-
-TODO:
 
 Recently at [Radar](https://radar.com), I've been working on search (forward geocoding / autocomplete for addresses, POIs, and regions), and writing lots of Rust.
 
-In order to dive a bit deeper into search fundamentals, I thought it would be interesting to dive into one of the most fundamental data structures in search, an [inverted index](https://en.wikipedia.org/wiki/Inverted_index) (sometimes referred to as a Posting List).
+I thought it would be a fun exercise to write out some basics about general text-based search and also implement a simple inverted index (really only in Rust because I like the language a lot).  Let's dive in!
 
-## A quick primer
+## A brief primer
 An [inverted index](https://en.wikipedia.org/wiki/Inverted_index) is a fundamental data structure in the search world, powering text-based search for libraries like [Apache Lucene](https://lucene.apache.org/) and [Tantivy](https://github.com/quickwit-oss/tantivy).
 
 To illustrate an inverted index, it's helpful to contrast with a [forward index](https://en.wikipedia.org/wiki/Search_engine_indexing#The_forward_index).
@@ -28,17 +26,17 @@ A forward index maps documents to the set of terms they contain:
 | ...      | ...                                              |
 | 10       | star wars episode vi return of the jedi          |
 
-Given this structure, you could imagine if we had a full catalog of movies (and maybe books as well), a query to find titles in a traditional forward index might look something like:
+Now imagine if we had a full catalog of movies, and we want to query for words in titles (or even something like scripts).  In a traditional forward index, that query might look something like:
 
 ```sql
-SELECT * FROM my_media WHERE title LIKE '%return%';
+SELECT * FROM movies WHERE title LIKE '%return%';
 ```
 
-This query requires scanning over every document in the index and checking if the term exists.  This can quickly get out of hand as datasets grow and grow (by row count, but also my term per document).
+Due to the structure above, this query requires scanning over every document in the index and checking if the term exists in the title.  This can quickly get out of hand (especially with respect to latency) as datasets grow and grow (by row count, but also terms per document).
 
 ### Inverted index
 
-An inverted index maps a set of terms to the documents they appear in:
+An inverted index flips the forward index, and maps a set of terms to the documents they appear in:
 
 | Term       | Documents   |
 | ---------- | ----------- |
@@ -59,18 +57,18 @@ An inverted index maps a set of terms to the documents they appear in:
 | wars       | 10          |
 
 
-Here we see each term mapped to the respective documents in which they appear.  Also notice that the index is sorted alphabetically by term (a small optimization).
+Here we see each term mapped to the documents in which they appear.  Also notice that the index is sorted alphabetically by term (a small optimization).
 
-The set of matching documents (the structure in the right column) here is often called a **posting list** (or postings).
+The set of matching documents (the structure in the right column) is often called a **posting list** (or postings).
 
 The other commonly associated structure with an inverted index is the **dictionary**.
 
-The dictionary is the unique set of the terms that exists in the index.  It contains pointers from each term to its respective posting list, for quick lookups.  Since the posting lists can be quite large, dictionaries are often kept in memory and point to the location of the posting list on disk.
+The dictionary is the unique set of the terms that exists in the index.  It contains pointers from each term to its respective posting list (for fast lookups).  Since the posting lists can be quite large, dictionaries are often kept in-memory and point to the location of the posting list on disk.
 
-Additionaly, metadata such as **document frequency**, which tells us how many documents contain each term (also equal to the length of the posting list), may also be stored on the dictionary.  Document frequency can be helpful for ranking our documents after retrieval, which we will discuss more in a bit.
+Additional metadata such as **document frequency**, which tells us how many documents contain each term (also equal to the length of the posting list), may also be stored on the dictionary.  Document frequency can be helpful for ranking our documents after retrieval, which we will discuss more in a bit.
 
 #### Searching
-Instead of the full index scan that needs to occur with the forward index, we can now do a term-lookup in approximately constant time.  These faster lookups generally come at the cost of slower write speeds given the complexity of the indexing (we'll dive into this later), but the faster reads generally outweight the costs here.
+Instead of the full index scan that needs to occur with the forward index, we can now do a term-lookup in approximately constant time.  These faster lookups generally come at the cost of slower write speeds due to the complexity of the indexing (we'll dive into this later), but the faster reads generally outweight the costs here.
 
 For example, we can search for `"return"` and see that documents `3` and `10` have a match and return those documents.  This reduced our operation count from scanning `n` rows to reading the index and operating on the matching documents (which will almost always be much less than the total indexed rows).
 
@@ -84,7 +82,7 @@ We can do the same for `OR` queries: `"rings" OR "fellowship"` by taking the uni
 `NOT` queries can be supported by taking the set difference of _all_ of the document ids and the term posting list.  For example: `NOT "return"`: `[1, 2, 3, 10] \ [3, 10] = [1, 2]`.
 
 #### Ranking
-The last topic to briefly cover before jumping into some code is ranking.  The lookups using our structure above help us to determine which documents match given a term(s), but it doesn't tell us _how well_ they match with respect to the rest of our data or help us pick certain documents over another when retrieving.
+Ranking is the last topic we'll briefly cover before jumping into some code.  The lookups using our structure above help us to determine _which_ documents match given a term(s), but it doesn't tell us _how well_ they match (with respect to the rest of our data) to help us pick certain documents over other when retrieving.
 
 ---
 
@@ -96,7 +94,7 @@ tl;dr is that:
 - **Recall** is the proportion of relevant documents that were successfully retrieved.  Said otherwise, did we find all the documents that matter?
 - **Precision** is the proportion of retrieved documents that are actually relevant.  Said otherwise, are the documents we returned correct?
 
-High recall means finding most of relevant documents, even if some bad or irrelevant ones slip through.
+High recall means finding most of the relevant documents, even if some bad or irrelevant ones slip through.
 
 High precision means your top results are highly relevant, even if you fail to fetch a few.
 
