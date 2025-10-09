@@ -68,12 +68,12 @@ The dictionary is the unique set of the terms that exists in the index.  It cont
 Additional metadata such as **document frequency**, which tells us how many documents contain each term (also equal to the length of the posting list), may also be stored on the dictionary.  Document frequency can be helpful for ranking our documents after retrieval, which we will discuss more in a bit.
 
 #### Searching
-Instead of the full index scan that needs to occur with the forward index, we can now do a term-lookup in approximately constant time.  These faster lookups generally come at the cost of slower write speeds due to the complexity of the indexing (we'll dive into this later), but the faster reads generally outweight the costs here.
+Instead of the full index scan that needs to occur with the forward index, we can now do a term-lookup in approximately constant time.  These faster lookups generally come at the cost of slower write speeds due to the complexity of the indexing (we'll dive into this later), but the faster reads generally outweigh the costs here.
 
 For example, we can search for `"return"` and see that documents `3` and `10` have a match and return those documents.  This reduced our operation count from scanning `n` rows to reading the index and operating on the matching documents (which will almost always be much less than the total indexed rows).
 
-#### Filtering
-Since the result of the lookup is document ids (or the posting list), we can also take advantage of set operations (`AND`, `OR`, `NOT`) to introduce more powerful querying paradigms, such as filtering.
+#### Boolean operators
+Since the result of the lookup is document ids (or the posting list), we can also take advantage of set operations (`AND`, `OR`, `NOT`) to introduce more powerful querying paradigms, such as expanding or narrowing our result set.
 
 For example, we can support queries like `"rings" AND "return"` by doing lookups for both terms, and then taking the intersection of the matching documents: `[1, 2, 3] ∩ [3, 10] = [3]`.
 
@@ -84,15 +84,12 @@ We can do the same for `OR` queries: `"rings" OR "fellowship"` by taking the uni
 #### Ranking
 Ranking is the last topic we'll briefly cover before jumping into some code.  The lookups using our structure above help us to determine _which_ documents match given a term(s), but it doesn't tell us _how well_ they match (with respect to the rest of our data) to help us pick certain documents over other when retrieving.
 
----
-
-**A quick aside**
-
-Two fundamental terms in search are **recall** and **precision** (more in-depth definitions [here](https://en.wikipedia.org/wiki/Precision_and_recall)).
+##### Recall and precision
+Before diving into ranking algorithms, it helps to discuss two fundamental terms in search: **recall** and **precision** (more in-depth definitions [here](https://en.wikipedia.org/wiki/Precision_and_recall)).
 
 tl;dr is that:
 - **Recall** is the proportion of relevant documents that were successfully retrieved.  Said otherwise, did we find all the documents that matter?
-- **Precision** is the proportion of retrieved documents that are actually relevant.  Said otherwise, are the documents we returned correct?
+- **Precision** is the proportion of retrieved documents that are actually relevant.  Said otherwise, are the documents we returned, correct?
 
 High recall means finding most of the relevant documents, even if some bad or irrelevant ones slip through.
 
@@ -100,7 +97,7 @@ High precision means your top results are highly relevant, even if you fail to f
 
 Balancing recall and precision is an art, but generally search systems aim to _retrieve_ results with high recall, and _rank_ by relevance to improve precision.
 
----
+##### TF-IDF
 
 One of the most fundamental ranking algorithms used in search is [TF-IDF](https://en.wikipedia.org/wiki/Tf%E2%80%93idf), or **Term Frequency-Inverse Document Frequency**.
 
@@ -110,11 +107,9 @@ The first part of the algorithm is the **Term Frequency**.  This is a measuremen
 
 The second part is the **Inverse Document Frequency**.  This is a measurement of how often a term appears across the entire collection of documents.  In contrast, the _less_ a term appears across the corpus, the more significant it is.
 
----
-
 For example, we can calculate the TF-IDF for two terms: `rings` and `fellowship` across a corpus of size `N = 4`.
 
-The posting list for `rings` is `[1, 2, 3]`.  Given the occurences, we can calculate the Term Frequency (TF):
+The posting list for `rings` is `[1, 2, 3]`.  Given the occurrences, we can calculate the Term Frequency (TF):
 
 | Document | Term Frequency (TF) | Total Terms | Normalized TF |
 | -------- | -------------- | ----------- | ------------- |
@@ -156,14 +151,14 @@ Finishing with TF x IDF:
 
 Even though these two terms have the same term frequency (primarily because the per-document text is small), `fellowship` has a much higher TF-IDF score, showing it's significance in _relevance_ between results.
 
-Another common (and more evolved) ranking algorithm is [BM25](https://en.wikipedia.org/wiki/Okapi_BM25).  I won't cover it much here other than to say it can address some shortcomings with TF-IDF such as normalizing document length (you have one document that is significantly longer than another), and more.  BM25 is the more commonly used ranking algorithm in systems like Lucene and Tantivy.
+Another common (and more evolved) ranking algorithm is [BM25](https://en.wikipedia.org/wiki/Okapi_BM25).  I won't cover it much here other than to say it addresses some shortcomings with TF-IDF, such as normalizing document length (you have one document that is significantly longer than another) and more.  BM25 is the more commonly used ranking algorithm in systems like Lucene and Tantivy.
 
 ---
 
 To summarize the basics, with an inverted index plus some math, we can now:
 
 - Retrieve documents efficiently by term
-- Apply filters using set operations (`AND`, `OR`, `NOT`)
+- Apply boolean operators (`AND`, `OR`, `NOT`) using set operations to narrow or widen the set of documents we retrieve
 - Rank them by relevance (TF-IDF)
 
 
