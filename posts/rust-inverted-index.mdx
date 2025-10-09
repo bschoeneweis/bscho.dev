@@ -166,7 +166,70 @@ Now we can dive into a simple implementation to see what this looks like!
 
 ## Building the index
 
-### Tokenization
+Let's start with the inverted index data structure itself:
+
+```rust
+use std::collections::{BTreeMap, HashMap};
+
+type DocumentId = u32;
+type Term = String;
+type PostingList = Vec<DocumentId>;
+
+#[derive(Debug)]
+struct InvertedIndex {
+    dictionary: BTreeMap<Term, PostingList>,
+    term_frequencies: HashMap<DocumentId, HashMap<Term, usize>>,
+    document_count: usize,
+}
+
+impl InvertedIndex {
+    fn new() -> Self {
+        Self {
+            dictionary: BTreeMap::new(),
+            term_frequencies: HashMap::new(),
+            document_count: 0,
+        }
+    }
+}
+```
+
+A few notes here:
+- As shown in the inverted index example in the primer, we use a `BTreeMap` so our dictionary stays sorted and we get lookups ~`O(log n)`
+- The posting list is a sort vector of document ids, this will enable fast set operations
+
+### Indexing data
+Let's take the documents from our example above and talk a little about indexing.
+
+```rust
+let documents = vec![
+    "The Lord of the Rings: The Fellowship of the Ring",
+    "The Lord of the Rings: The Two Towers",
+    "The Lord of the Rings: The Return of the King",
+    "Star Wars: Episode VI - Return of the Jedi",
+];
+```
+
+#### Tokenization
+An important part of indexing is **tokenization**.
+
+Tokenization breaks the text into individual search "units" (usually called **tokens**), and normalizes each token for a consistent search experience.
+
+This normalization could include operations like:
+- Applying consistent casing
+- Removing punctuation
+- Removing [stop words](https://nlp.stanford.edu/IR-book/html/htmledition/dropping-common-terms-stop-words-1.html)
+- [Stemming and lemmatization](https://nlp.stanford.edu/IR-book/html/htmledition/stemming-and-lemmatization-1.html)
+- Normalizing non-ascii character sets (e.g. [CJK characters](https://en.wikipedia.org/wiki/CJK_characters))
+- Applying [n-grams](https://en.wikipedia.org/wiki/N-gram)
+- And more
+
+For the purposes of this article, we'll just look at the first few of these, but the other normalization techniques can make your simple search much more effective.
+
+One of the most important aspects of tokenization is consistency between indexing and querying.  If you handle punctuation during indexing but not at query-time, you'll create mismatches.
+
+For example, if you normalize `wasn't` -> `wasnt` during indexing, but you don't do the same when processing queries, then searching for `"wasn't"` won't match the term in the index.
+
+Now let's add a tokenization function:
 
 ### The data structure
 
