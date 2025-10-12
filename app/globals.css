@@ -119,7 +119,7 @@ blockquote > p {
 
 code {
   counter-reset: line;
-  font-size: .8em;
+  font-size: .8rem;
   padding: 5px 0;
   margin: 1.25rem 0;
   overflow-wrap: break-word;
@@ -135,7 +135,7 @@ code > [data-line]::before {
   margin-right: 1rem;
   text-align: right;
   color: gray;
-  font-size: .75em;
+  font-size: .75rem;
 }
 
 code[data-line-numbers-max-digits="2"] > [data-line]::before {
