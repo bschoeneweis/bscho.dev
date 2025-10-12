@@ -1,0 +1,699 @@
+---
+title: 'Building an inverted index from scratch in Rust'
+date: '2025-10-05'
+tags: ['rust', 'search']
+description: 'A brief primer on search, and building a simple inverted index from scratch in Rust, from tokenization to querying.'
+---
+
+Recently at [Radar](https://radar.com), I've been working on search (forward geocoding / autocomplete for addresses, POIs, and regions), and writing lots of Rust.
+
+I thought it would be a fun exercise to write out some basics about general text-based search and also implement a simple inverted index (really only in Rust because I like the language a lot).  Let's dive in!
+
+## A brief primer
+An [inverted index](https://en.wikipedia.org/wiki/Inverted_index) is a fundamental data structure in the search world, powering text-based search for libraries like [Apache Lucene](https://lucene.apache.org/) and [Tantivy](https://github.com/quickwit-oss/tantivy).
+
+To illustrate an inverted index, it's helpful to contrast with a [forward index](https://en.wikipedia.org/wiki/Search_engine_indexing#The_forward_index).
+
+### Forward index
+
+A forward index maps documents to the set of terms they contain:
+
+| Document | Terms                                            |
+| -------- | ------------------------------------------------ |
+| 1        | the lord of the rings the fellowship of the ring |
+| 2        | the lord of the rings the two towers             |
+| 3        | the lord of the rings the return of the king     |
+| 4        | star wars episode vi return of the jedi          |
+| ...      | ...                                              |
+
+Now imagine if we had a full catalog of movies, and we want to query for words in titles (or even something like scripts).  In a traditional forward index, that query might look something like:
+
+```sql
+SELECT * FROM movies WHERE title LIKE '%return%';
+```
+
+Due to the structure above, this query requires scanning over every document in the index and checking if the term exists in the title.  This can quickly get out of hand (especially with respect to latency) as datasets grow and grow (by row count, but also terms per document).
+
+### Inverted index
+
+An inverted index flips the forward index, and maps a set of terms to the documents they appear in:
+
+| Term       | Documents   |
+| ---------- | ----------- |
+| episode    | 4           |
+| fellowship | 1           |
+| jedi       | 4           |
+| king       | 3           |
+| lord       | 1, 2, 3     |
+| of         | 1, 2, 3, 4  |
+| return     | 3, 4        |
+| ring       | 1           |
+| rings      | 1, 2, 3     |
+| star       | 4           |
+| the        | 1, 2, 3, 4  |
+| towers     | 2           |
+| two        | 2           |
+| vi         | 4           |
+| wars       | 4           |
+
+
+Here we see each term mapped to the documents in which they appear (also notice that the index is sorted alphabetically by term,a small optimization).
+
+The set of matching documents (the structure in the right column) is often called a **posting list** (or postings).
+
+The other commonly associated structure with an inverted index is the **dictionary**.
+
+The dictionary is the unique set of the terms that exists in the index.  It contains pointers from each term to its respective posting list (for fast lookups).  Since the posting lists can be quite large, dictionaries are often kept in-memory and point to the location of the posting list on disk.
+
+Additional metadata such as **document frequency**, which tells us how many documents contain each term (also equal to the length of the posting list), may also be stored on the dictionary.  Document frequency can be helpful for ranking our documents after retrieval, which we will discuss more in a bit.
+
+#### Searching
+Instead of the full index scan that needs to occur with the forward index, we can now do a term-lookup in approximately constant time.  These faster lookups generally come at the cost of slower write speeds due to the complexity of the indexing (we'll dive into this later), but the faster reads generally outweigh the costs here.
+
+For example, we can search for `"return"` and see that documents `3` and `4` have a match and return those documents.  This reduced our operation count from scanning `n` rows to reading the index and operating on the matching documents (which will almost always be much less than the total indexed rows).
+
+#### Boolean operators
+Since the result of the lookup is document ids (or the posting list), we can also take advantage of set operations (`AND`, `OR`, `NOT`) to introduce more powerful querying paradigms which can expand or narrow our result set.
+
+For example, we can support queries like `"rings" AND "return"` by doing lookups for both terms, and then taking the intersection of the matching documents: `[1, 2, 3] ∩ [3, 4] = [3]`.
+
+We can do the same for `OR` queries: `"rings" OR "fellowship"` by taking the union: `[1, 2, 3] ∪ [1] = [1, 2, 3]`.
+
+`NOT` queries can be supported by taking the set difference of _all_ of the document ids and the term posting list.  For example: `NOT "return"`: `[1, 2, 3, 4] \ [3, 4] = [1, 2]`.
+
+#### Ranking
+Ranking is the last topic we'll briefly cover before jumping into some code.  The lookups using our structure above help us to determine _which_ documents match given a term(s), but it doesn't tell us _how well_ they match (with respect to the rest of our data) to help us pick certain documents over other when retrieving.
+
+##### Recall and precision
+Before diving into ranking algorithms, it helps to discuss two fundamental terms in search: **recall** and **precision** (more in-depth definitions [here](https://en.wikipedia.org/wiki/Precision_and_recall)).
+
+tl;dr is that:
+- **Recall** is the proportion of relevant documents that were successfully retrieved.  Said otherwise, did we find all the documents that matter?
+- **Precision** is the proportion of retrieved documents that are actually relevant.  Said otherwise, are the documents we returned, correct?
+
+High recall means finding most of the relevant documents, even if some bad or irrelevant ones slip through.
+
+High precision means your top results are highly relevant, even if you fail to fetch a few.
+
+Balancing recall and precision is an art, but generally search systems aim to _retrieve_ results with high recall, and _rank_ by relevance to improve precision.
+
+##### TF-IDF
+
+One of the most fundamental ranking algorithms used in search is [TF-IDF](https://en.wikipedia.org/wiki/Tf%E2%80%93idf), or **Term Frequency-Inverse Document Frequency**.
+
+This algorithm (while relatively simple) tries to tell us how important a term is in a document, across a collection or index of documents (also called a corpus).  The mathematics can be seen in the link above, but to provide a quick understanding, we can look at TF-IDF in two parts.
+
+The first part of the algorithm is the **Term Frequency**.  This is a measurement of how often a term appears within a document.  Generally, the more often a term appears, the more important it is.
+
+The second part is the **Inverse Document Frequency**.  This is a measurement of how often a term appears across the entire collection of documents.  In contrast, the _less_ a term appears across the corpus, the more significant it is.
+
+For example, we can calculate the TF-IDF for two terms: `rings` and `fellowship` across a corpus of size `N = 4`.
+
+**`rings`**
+
+The posting list for `rings` is `[1, 2, 3]`.  Given the occurrences, we can calculate the Term Frequency (TF):
+
+| Document | Term Frequency (TF) | Total Terms | Normalized TF |
+| -------- | ------------------- | ----------- | ------------- |
+| 1        | 1                   | 10          | 1/10 = 0.100  |
+| 2        | 1                   | 8           | 1/8 = 0.125   |
+| 3        | 1                   | 10          | 1/10 = 0.100  |
+
+Followed by the Inverse Document Frequency (IDF):
+
+`IDF = log10(N / nₜ) = log10(4 / 3) ≈ 0.125`
+
+Lastly, we do TF x IDF:
+
+| Document | TF    | IDF   | TF-IDF |
+| -------- | ----- | ----- | ------ |
+| 1        | 0.100 | 0.125 | 0.0125 |
+| 2        | 0.125 | 0.125 | 0.0156 |
+| 3        | 0.100 | 0.125 | 0.0125 |
+
+What exactly do these values mean?  Because the TF-IDF is smaller, than means the term `rings` (given our corpus), does not help us distinguish much between the documents.
+
+Now let's contrast that with the more unique term, `fellowship`.
+
+**`fellowship`**
+
+The posting list for `fellowship` is `[1]`.  With only a single occurence, we can still calculate the Term Frequency (TF):
+
+| Document | Term Frequency (TF) | Total Terms | Normalized TF |
+| -------- | ------------------- | ----------- | ------------- |
+| 1        | 1                   | 10          | 1/10 = 0.100  |
+
+With the following IDF:
+
+`IDF = log10(N / nₜ) = log10(4 / 1) ≈ 0.602`
+
+Finishing with TF x IDF:
+
+| Document | TF    | IDF   | TF-IDF |
+| -------- | ----- | ----- | ------ |
+| 1        | 0.100 | 0.602 | 0.0602 |
+
+Even though these two terms have the same term frequency (primarily because the per-document text is small), `fellowship` has a much higher TF-IDF score, showing it's significance in _relevance_ between results.
+
+Another common (and more evolved) ranking algorithm is [BM25](https://en.wikipedia.org/wiki/Okapi_BM25).  I won't cover it much here other than to say it addresses some shortcomings with TF-IDF, such as normalizing document length (you have one document that is significantly longer than another) and more.  BM25 is the more commonly used ranking algorithm in systems like Lucene and Tantivy.
+
+---
+
+To summarize the basics, with an inverted index plus some math, we can now:
+
+- Retrieve documents efficiently by term
+- Apply boolean operators (`AND`, `OR`, `NOT`) using set operations to narrow or widen the set of documents we retrieve
+- Rank them by relevance (TF-IDF)
+
+Now we can dive into a simple implementation to see what this looks like!
+
+## Building the index
+
+Let's start with the inverted index data structure itself:
+
+```rust
+use std::collections::{BTreeMap, HashMap, HashSet};
+
+type DocumentId = u32;
+type Term = String;
+type PostingList = HashSet<DocumentId>;
+
+#[derive(Debug)]
+struct InvertedIndex {
+    dictionary: BTreeMap<Term, PostingList>,
+    term_frequencies: HashMap<DocumentId, HashMap<Term, usize>>,
+    document_count: usize,
+}
+
+impl InvertedIndex {
+    fn new() -> Self {
+        Self {
+            dictionary: BTreeMap::new(),
+            term_frequencies: HashMap::new(),
+            document_count: 0,
+        }
+    }
+}
+```
+
+A few notes here:
+- As shown in the inverted index example in the primer, we use a `BTreeMap` (overkill for just a few documents) so our dictionary stays sorted and we get lookups ~`O(log n)`
+- The posting list is a `HashSet` of document ids for simple set operations
+    - This isn't the most efficient at scale, something like a sorted vector would work better
+
+### Indexing data
+Let's take the documents from our example above and talk a little about indexing.
+
+```rust
+let documents = vec![
+    "The Lord of the Rings: The Fellowship of the Ring",
+    "The Lord of the Rings: The Two Towers",
+    "The Lord of the Rings: The Return of the King",
+    "Star Wars: Episode VI - Return of the Jedi",
+];
+```
+
+#### Tokenization
+An important part of indexing is **tokenization**.
+
+Tokenization breaks the text into individual search "units" (usually called **tokens**), and normalizes each token for a consistent search experience.
+
+This normalization could include operations like:
+- Applying consistent casing
+- Removing punctuation
+- Removing [stop words](https://nlp.stanford.edu/IR-book/html/htmledition/dropping-common-terms-stop-words-1.html) like `the` and `of`
+- [Stemming and lemmatization](https://nlp.stanford.edu/IR-book/html/htmledition/stemming-and-lemmatization-1.html)
+- Normalizing non-ascii character sets (e.g. [CJK characters](https://en.wikipedia.org/wiki/CJK_characters))
+- Applying [n-grams](https://en.wikipedia.org/wiki/N-gram)
+- And [more](https://nlp.stanford.edu/IR-book/html/htmledition/tokenization-1.html)...
+
+For the purposes of this article, we'll just look at the first few of these, but the other normalization techniques can make your simple search much more effective.
+
+One of the most important aspects of tokenization is keeping consistency between indexing and querying.  If you handle punctuation during indexing but not at query-time, you'll create mismatches.
+
+For example, if you normalize `wasn't` -> `wasnt` during indexing, but you don't do the same when processing queries, then searching for `"wasn't"` won't match the term in the index.
+
+Given the importance here, we can add a simple tokenization function to our implementation:
+
+```rust
+type Term = String;
+
+const STOP_WORDS: &[&str] = &["the", "of"];
+
+fn tokenize(text: &str) -> Vec<Term> {
+    text.trim()
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { ' ' })
+        .collect::<String>()
+        .split_whitespace()
+        .filter(|token| !STOP_WORDS.contains(token))
+        .map(|token| token.to_string())
+        .collect()
+}
+```
+
+Here we're applying the following normalization techniques:
+- Mapping everything to lowercase
+- Removing non-alphanumeric characters
+- Dropping stop words
+- Splitting into tokens / terms
+
+This will transform our documents into the following:
+
+```
+The Lord of the Rings: The Fellowship of the Ring -> ["lord", "rings", "fellowship", "ring"]
+The Lord of the Rings: The Two Towers -> ["lord", "rings", "two", "towers"]
+The Lord of the Rings: The Return of the King -> ["lord", "rings", "return", "king"]
+Star Wars: Episode VI - Return of the Jedi -> ["star", "wars", "episode", "vi", "return", "jedi"]
+```
+
+Tokenization can actually be a tricky problem, and your implementation may want to hand certain characters in different ways (i.e. should a dash be removed, or converted to a space?).  There are also a lot of edge-cases with tokenization, so sometimes it's best to use a more well-prescribed [library](https://crates.io/crates/tokenizers).
+
+#### Writing to the index
+With proper tokenization now in place, we can modify our implementation and write the documents to our index:
+
+```rust
+impl InvertedIndex {
+    fn new() -> Self {
+        Self {
+            dictionary: BTreeMap::new(),
+            term_frequencies: HashMap::new(),
+            document_count: 0,
+        }
+    }
+
+    fn build(documents: &[&str]) -> Self {
+        let mut inverted_index = Self::new();
+        for (document_id, document) in documents.iter().enumerate() {
+            inverted_index.insert_document((document_id + 1) as u32, document); // add 1 to follow along with examples
+        }
+
+        inverted_index
+    }
+
+    fn insert_document(&mut self, document_id: DocumentId, text: &str) {
+        let terms = tokenize(text);
+
+        let mut term_frequencies: HashMap<Term, usize> = HashMap::with_capacity(terms.len());
+        for term in terms {
+            *term_frequencies.entry(term.clone()).or_default() += 1;
+        }
+        for unique_term in term_frequencies.keys() {
+            self.dictionary
+                .entry(unique_term.clone())
+                .or_default()
+                .insert(document_id);
+        }
+        self.term_frequencies.insert(document_id, term_frequencies);
+
+        self.document_count += 1;
+    }
+}
+
+fn main() {
+    let documents = vec![
+        "The Lord of the Rings: The Fellowship of the Ring",
+        "The Lord of the Rings: The Two Towers",
+        "The Lord of the Rings: The Return of the King",
+        "Star Wars: Episode VI - Return of the Jedi",
+    ];
+
+    let inverted_index = InvertedIndex::build(&documents);
+    println!("{:#?}", inverted_index);
+}
+```
+
+This should produce something like:
+
+```rust
+InvertedIndex {
+    dictionary: {
+        "episode": {
+            4,
+        },
+        "fellowship": {
+            1,
+        },
+        "jedi": {
+            4,
+        },
+        "king": {
+            3,
+        },
+        "lord": {
+            2,
+            1,
+            3,
+        },
+        "return": {
+            4,
+            3,
+        },
+        "ring": {
+            1,
+        },
+        "rings": {
+            2,
+            3,
+            1,
+        },
+        "star": {
+            4,
+        },
+        "towers": {
+            2,
+        },
+        "two": {
+            2,
+        },
+        "vi": {
+            4,
+        },
+        "wars": {
+            4,
+        },
+    },
+    term_frequencies: {
+        2: {
+            "rings": 1,
+            "two": 1,
+            "lord": 1,
+            "towers": 1,
+        },
+        4: {
+            "vi": 1,
+            "wars": 1,
+            "episode": 1,
+            "jedi": 1,
+            "star": 1,
+            "return": 1,
+        },
+        3: {
+            "return": 1,
+            "rings": 1,
+            "king": 1,
+            "lord": 1,
+        },
+        1: {
+            "rings": 1,
+            "lord": 1,
+            "fellowship": 1,
+            "ring": 1,
+        },
+    },
+    document_count: 4,
+}
+```
+
+### Searching
+With the base of the index setup, now we can do some more search-centric operations.
+
+#### Lookups
+First, we can support the core lookup associated with inverted indexes and get all of the documents that contain a term (the posting list).
+
+```rust
+impl InvertedIndex {
+    ...
+
+    fn get_posting_list(&self, term: &str) -> PostingList {
+        self.dictionary.get(term).cloned().unwrap_or_default()
+    }
+}
+```
+
+```rust
+let matching_documents = inverted_index.get_posting_list("return");
+// > {3, 4}
+```
+
+This is already pretty powerful for solving the initial problem we described with forward indexes.  But we can go even further.
+
+#### Boolean operators
+Using our `get_posting_list` function, we can now support the set operations we described earlier:
+
+##### `AND`
+
+```rust
+impl InvertedIndex {
+    ...
+
+    fn query_and(&self, terms: &[&str]) -> PostingList {
+        let mut terms_iter = terms.iter();
+        let Some(first_term) = terms_iter.next() else {
+            return HashSet::new();
+        };
+
+        let mut result_set = self.get_posting_list(first_term);
+        for term in terms_iter {
+            let term_posting_list = self.get_posting_list(term);
+            result_set = result_set
+                .intersection(&term_posting_list)
+                .copied()
+                .collect();
+            if result_set.is_empty() {
+                break; // small optimization to exit early if intersections aren't fruitful
+            }
+        }
+
+        result_set
+    }
+}
+```
+
+```rust
+let and_matches = inverted_index.query_and(&["return", "rings"]);
+// > {3}
+```
+
+##### `OR`
+```rust
+impl InvertedIndex {
+    ...
+
+    fn query_or(&self, terms: &[&str]) -> PostingList {
+        let mut result_set = HashSet::new();
+        for term in terms {
+            let term_posting_list = self.get_posting_list(term);
+            result_set = result_set.union(&term_posting_list).copied().collect();
+        }
+
+        result_set
+    }
+}
+```
+
+```rust
+let or_matches = inverted_index.query_or(&["rings", "fellowship"]);
+// > {1, 2, 3}
+```
+
+##### `NOT`
+```rust
+impl InvertedIndex {
+    ...
+
+    fn get_all_document_ids(&self) -> HashSet<DocumentId> {
+        self.term_frequencies.keys().copied().collect()
+    }
+
+    fn query_not(&self, terms: &[&str]) -> PostingList {
+        let all_document_ids = self.get_all_document_ids();
+
+        let mut ids_to_exclude = HashSet::new();
+        for term in terms {
+            let term_posting_list = self.get_posting_list(term);
+            ids_to_exclude.extend(term_posting_list);
+        }
+
+        all_document_ids
+            .difference(&ids_to_exclude)
+            .copied()
+            .collect()
+    }
+}
+```
+
+```rust
+let not_matches = inverted_index.query_not(&["return"]);
+// > {1, 2}
+```
+
+#### TF-IDF
+One more piece before we build our search function is adding a TF-IDF implementation to rank results:
+
+```rust
+impl InvertedIndex {
+    ...
+
+    fn tf_idf(&self, document_id: DocumentId, term: &str) -> f64 {
+        let term_frequency = self
+            .term_frequencies
+            .get(&document_id)
+            .and_then(|term_map| term_map.get(term))
+            .copied()
+            .unwrap_or(0) as f64;
+
+        let document_total_terms = self
+            .term_frequencies
+            .get(&document_id)
+            .map(|term_map| term_map.values().sum::<usize>() as f64)
+            .unwrap_or(1.0);
+
+        let document_frequency = self
+            .dictionary
+            .get(term)
+            .map(|documents| documents.len())
+            .unwrap_or(0)
+            .max(1); // prevent divide by zero
+
+        let inverse_document_frequency =
+            (self.document_count as f64 / document_frequency as f64).log10();
+
+        (term_frequency / document_total_terms) * inverse_document_frequency
+    }
+}
+```
+
+> You'll notice that the values below are slighty different than the example we did by hand, that is due to the removal of the stop words. If you comment out the line that filters out stop words, you will get the expected `0.0125` and `0.0602`, respectively.
+
+```rust
+let rings_tf_idf = inverted_index.tf_idf(1, "rings");
+// > 0.0312
+let fellowship_tf_idf = inverted_index.tf_idf(1, "fellowship");
+// > 0.1505
+```
+
+#### Text queries
+With all of the core pieces built out, we can now integrate our tokenization and TF-IDF to do a simple text-based search with a query string!
+
+```rust
+impl InvertedIndex {
+    ...
+
+    fn search(&self, query: &str) -> Vec<(DocumentId, f64)> {
+        let query_terms = tokenize(query);
+        let mut scored_documents: HashMap<DocumentId, f64> = HashMap::new();
+
+        for term in &query_terms {
+            let term_posting_list = self.get_posting_list(term);
+            for document_id in term_posting_list {
+                let tf_idf = self.tf_idf(document_id, term);
+                *scored_documents.entry(document_id).or_insert(0.0) += tf_idf;
+            }
+        }
+
+        let mut results: Vec<_> = scored_documents.into_iter().collect();
+        results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(Ordering::Equal));
+
+        results
+    }
+}
+```
+
+```rust
+inverted_index.search("return of the king");
+// > [(3, 0.2258), (4, 0.0502)]
+
+inverted_index.search("lord of the rings");
+// > [(3, 0.0625), (2, 0.0625), (1, 0.0625)]
+
+inverted_index.search("star wars");
+// > [(4, 0.201)]
+```
+
+#### Boolean queries
+The last thing we'll add here is support for simple [boolean queries](https://www.elastic.co/docs/reference/query-languages/query-dsl/query-dsl-bool-query) (`MUST`, `SHOULD`, `MUST_NOT`, etc.), which are commonly seen in search libraries.
+
+```rust
+#[derive(Debug)]
+enum BooleanOp {
+    Must,
+    Should,
+    MustNot,
+}
+
+impl InvertedIndex {
+    ...
+
+    fn boolean_query(&self, query: Vec<(BooleanOp, &str)>) -> Vec<(DocumentId, f64)> {
+        let mut must_terms = Vec::new();
+        let mut should_terms = Vec::new();
+        let mut must_not_terms = Vec::new();
+
+        for (op, term) in query {
+            match op {
+                BooleanOp::Must => must_terms.push(term),
+                BooleanOp::Should => should_terms.push(term),
+                BooleanOp::MustNot => must_not_terms.push(term),
+            }
+        }
+
+        // start with a base set depending on what operations are defined
+        // and narrow our matching documents
+        let mut matching_documents = if !must_terms.is_empty() {
+            self.query_and(&must_terms)
+        } else if !should_terms.is_empty() {
+            self.query_or(&should_terms)
+        } else {
+            self.get_all_document_ids()
+        };
+
+        if !must_not_terms.is_empty() {
+            let excluded = self.query_not(&must_not_terms);
+            matching_documents = matching_documents
+                .intersection(&excluded)
+                .copied()
+                .collect();
+        }
+
+        // score all of the matches
+        let mut scored_documents = Vec::with_capacity(matching_documents.len());
+        for document_id in matching_documents {
+            let mut score = 0.0;
+
+            for term in &must_terms {
+                // apply a slight boost for MUST matches
+                let tf_idf = self.tf_idf(document_id, *term);
+                let boosted_score_for_must = tf_idf * 2.0;
+                score += boosted_score_for_must;
+            }
+
+            for term in &should_terms {
+                let tf_idf = self.tf_idf(document_id, *term);
+                score += tf_idf;
+            }
+
+            if score > 0.0 {
+                scored_documents.push((document_id, score));
+            }
+        }
+
+        scored_documents.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(Ordering::Equal));
+
+        scored_documents
+    }
+}
+```
+
+```rust
+let boolean_query = vec![(BooleanOp::Must, "return"), (BooleanOp::Should, "star")];
+inverted_index.boolean_query(boolean_query);
+// > [(4, 0.20068666377598746), (3, 0.1505149978319906)]
+
+let boolean_query = vec![(BooleanOp::Must, "return"), (BooleanOp::MustNot, "star")];
+inverted_index.boolean_query(boolean_query);
+// > [(3, 0.1505149978319906)]
+```
+
+---
+
+Pretty sweet!  As previously stated, this is a simple implementation, but should hopefully showcase some of the fundamental concepts in the search world.
+
+If you're one of the few and the proud who made it this far, I highly recommend exploring the [Tantivy source code](https://github.com/quickwit-oss/tantivy) to see a full production-ready example of a Rust-based search engine.
+
+Thanks for reading and you can check out the full source code for our implementation [here](https://github.com/bschoeneweis/bscho.dev/blob/main/posts-src/inverted_index/src/main.rs).
+
+Cheers!
+
+---

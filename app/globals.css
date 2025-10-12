@@ -46,18 +46,46 @@ article > p > a:hover {
   text-decoration: underline;
 }
 
+article > ul > li > a {
+  color: var(--link-blue);
+}
+
+article > ul > li > a:hover {
+  text-decoration: underline;
+}
+
 article > h2 {
+  font-size: 1.625rem;
+  line-height: 1.35;
   margin-top: 1.75rem;
-  font-weight: 590;
+  font-weight: 600;
+  letter-spacing: -0.04rem;
 }
 
 article > h3 {
+  font-size: 1.375rem;
+  line-height: 1.4;
   margin-top: 1.75rem;
-  font-weight: 590;
+  font-weight: 600;
+  letter-spacing: -0.03rem;
 }
 
-article > h2:first-of-type {
-  margin-top: inherit;
+article > h4 {
+  font-size: 1.125rem;
+  line-height: 1.45;
+  font-weight: 600;
+  letter-spacing: -0.02rem;
+  margin-top: 1.5em;
+}
+
+article > h5 {
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  font-weight: 600;
+  letter-spacing: -0.01rem;
+  margin-top: 1.25em;
+  margin-block-start: 1.33em;
+  margin-block-end: 1.33em;
 }
 
 article > hr {
@@ -144,4 +172,52 @@ li {
 h2 {
   margin: 0;
   padding: 0;
+}
+
+/* wrapper for mobile overflow scrolling, but need hidden overflow for the table for border radius */
+.table-container {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+}
+
+/* markdown table styling */
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 0.5rem 0;
+  font-family: inherit;
+  background-color: #1f2937;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+th,
+td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+
+th {
+  background-color: #374151;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+td {
+  border-top: 1px solid #4b5563;
+  color: #d1d5db;
+}
+
+tr:nth-child(even) td {
+  background-color: #2d3748;
+}
+
+table::-webkit-scrollbar {
+  height: 6px;
+}
+
+table::-webkit-scrollbar-thumb {
+  background-color: #6b7280;
+  border-radius: 3px;
 }
