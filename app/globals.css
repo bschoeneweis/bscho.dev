@@ -165,6 +165,12 @@ code:not([data-theme="github-dark"]) {
   border-radius: 3px;
 }
 
+@media (max-width: 600px) {
+  code[data-theme="github-dark"] {
+    font-size: 0.75rem;
+  }
+}
+
 li {
   margin-bottom: 2px;
 }
