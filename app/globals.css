@@ -21,6 +21,8 @@ body {
   height: 100%;
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  -webkit-overflow-scrolling: touch;
   padding: 0;
   margin: 0;
   color: white;
@@ -123,7 +125,10 @@ code {
   padding: 5px 0;
   margin: 1.25rem 0;
   overflow-wrap: break-word;
-  overflow-x: scroll;
+  overflow-x: auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 code > [data-line]::before {
@@ -166,7 +171,7 @@ code:not([data-theme="github-dark"]) {
 
 @media (max-width: 600px) {
   code[data-theme="github-dark"] {
-    font-size: 0.75rem;
+    font-size: 12px;
   }
 }
 
