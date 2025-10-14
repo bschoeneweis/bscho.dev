@@ -123,7 +123,6 @@ code {
   padding: 5px 0;
   margin: 1.25rem 0;
   overflow-wrap: break-word;
-  min-width: 100%;
   overflow-x: scroll;
 }
 
