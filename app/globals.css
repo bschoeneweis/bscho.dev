@@ -175,6 +175,10 @@ code:not([data-theme="github-dark"]) {
   }
 }
 
+code[data-language="plaintext"] > [data-line]::before {
+  display: none;
+}
+
 li {
   margin-bottom: 2px;
 }
