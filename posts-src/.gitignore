@@ -1,0 +1,8 @@
+# Ignore all Cargo build outputs (debug and release)
+**/target/
+**/debug/
+**/release/
+**/.cargo/
+**/.rustup/
+.DS_Store
+**/.vscode/
