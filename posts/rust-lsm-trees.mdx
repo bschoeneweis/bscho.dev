@@ -5,13 +5,17 @@ tags: ['rust', 'search']
 description: 'Building a simple log-structured merge tree (LSM tree) from scratch in Rust.'
 ---
 
+> This is an attempt at a high-level introduction to the architecture of LSM trees.  Certain implementation details or features (there are a lot!) may not be covered.  If you're interested in LSM trees in detail, a great resource is the [RocksDB wiki](https://github.com/facebook/rocksdb/wiki/RocksDB-Overview).
+
 A [log-structured merge tree](https://en.wikipedia.org/wiki/Log-structured_merge-tree) (or an LSM tree) is a write-optimized data structure that is used in databases like [RocksDB](https://rocksdb.org/) and [Cassandra](https://cassandra.apache.org/_/index.html).
 
 By buffering writes in memory, and then flushing sorted files to disk, LSM trees can achieve high write throughput and efficient reads to power use-cases like [observability](https://greptime.com/), [streaming](https://risingwave.com/), and [more](https://tigerbeetle.com/).
 
 ## Fundamentals
 
-There are a few fundamental pieces to chat through before we jump into an implementation.  First, we'll talk about the building blogs that make up the write path.
+There are a few fundamental pieces to chat through before we jump into an implementation.
+
+The write path of LSM trees does a good job showcasing how each core component fits together, so we'll first cover what happens when a write comes in.  Then, we'll briefly cover the read path to complete the picture.
 
 ### Writes
 
@@ -37,12 +41,14 @@ There are a few fundamental pieces to chat through before we jump into an implem
            merged SSTable
 ```
 
-When a write comes in, it is simultaneously written to a [write-ahead log](https://en.wikipedia.org/wiki/Write-ahead_logging) (WAL) and a memtable.
+When a write comes in, it is simultaneously written to a memtable and a [write-ahead log](https://en.wikipedia.org/wiki/Write-ahead_logging) (WAL).
 
 #### Memtable
-The memtable is an in-memory buffer where all writes initially land (because writing to memory is [_much_ faster](https://github.com/sirupsen/napkin-math?tab=readme-ov-file#numbers) than writing to disk).  Memtables are usually built from [skip lists](https://en.wikipedia.org/wiki/Skip_list) or [red-black trees](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree), and store sorted key-value pairs (sorted by key).  The keys are sorted up at this stage to make later on-disk merges and lookups more efficient.
+The memtable is an in-memory buffer that temporarily holds all incoming writes (before they get persisted to disk).  Because writing to memory is [orders of magnitude faster](https://github.com/sirupsen/napkin-math?tab=readme-ov-file#numbers) than writing to disk, we can quickly acknowledge the writes.
 
-Once a certain size limit is hit, the memtable gets saved to disk.
+Memtables are usually built from [skip lists](https://en.wikipedia.org/wiki/Skip_list) or [red-black trees](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree), which store sorted key-value pairs (sorted by key).  The sorted layout gives us the benefit of efficient lookups, and speeds up future on-disk merges.
+
+Once a certain size limit is hit, the memtable gets saved to disk.  While being saved to disk, the memtable being flushed will become immutable (although still queryable), and another memtable will take over incoming writes.
 
 #### Write-ahead log (WAL)
 Given that the memtable lives in-memory, we also want to provide durability to our system.  Enter, the WAL.
@@ -52,14 +58,16 @@ The WAL is an append-only file that gives us data durability.  Without the WAL, 
 Once the memtable is safely flushed to disk (up next) and the data is persisted, the corresponding WAL entries can be purged.
 
 #### Sorted string tables (SSTables)
-Once the memtable reaches its size limit and "gets flushed", it gets saved to a Sorted String Table, or SSTable.
+As previously described, once the memtable reaches its size limit and "gets flushed", it gets saved to a Sorted String Table, or SSTable.
 
-An SSTable is an immutable, sorted file that stores key-value pairs (ordered by key).  These files usually also contain index blocks to quickly locate keys within the file, and bloom filters to filter through files that don't contain a given key.
+An SSTable is an immutable, sorted file that stores key-value pairs (ordered by key).  These files usually also contain index blocks to quickly locate keys within the file, and [bloom filters](https://en.wikipedia.org/wiki/Bloom_filter) to filter through files that don't contain a given key.
+
+One important performance aspect here is that the SSTables are writen using sequential I/O, meaning we batch the data in large, contiguous chunks on disk.  This makes our writes (and reads which we'll cover soon) faster than random I/O.  This also helps us fully utilize the disk throughput when flushing (or when compacting, which we'll cover next).
 
 Because SSTables are immutable, each memtable flush creates a new SSTable.  Over time, these SSTables accumulate, often containing different versions of keys.
 
 #### Compaction
-Periodically, we take the accumulated SSTables, and we _compact_ and consolidate them into larged SSTables.
+Periodically, we take the accumulated SSTables, and we _compact_ and consolidate them into larger SSTables.
 
 Compaction keeps data sorted, removes outdated versions and deleted keys, and reduces the number of files that must be searched during reads.  It's an important process for maintaining stable performance as data grows.
 
@@ -70,10 +78,80 @@ Used by RocksDB, leveled compaction organizes SSTables into different levels (L0
 
 New SSTables are written to L0, so that initial non-overlapping guarantee can't hold.  But, once the size limit of L0 is hit, the files get merged into the next level (each is ~10x bigger than the previous) with non-overlapping keys.
 
-The result is strong read performance.  To find a key, only one SSTable needs to be looked at per level. This of course comes at the cost of high [write amplification](https://en.wikipedia.org/wiki/Write_amplification) due to all of the small merging operations as data falls through the levels.
+The result is strong read performance.  To find a key, only one SSTable needs to be looked at per level.
+
+This comes at the cost of high [write amplification](https://en.wikipedia.org/wiki/Write_amplification) due to all of the small merging operations as data falls through the levels.
 
 ##### Size-Tiered compaction
 Used by Cassandra, size-tiered compaction groups SSTables of similar sizes into tiers.  Once there are enough SSTables of roughly the same size within a tier, they get merged into a single, larger SSTable and moved to the next tier.
 
-The result is lower write amplification (fewer compactions) which yields high write throughput.  The tradeoff higher read amplification, since a key might appear in multiple overlapping SSTables.
+The result is high write throughput due to the lower write amplification (fewer compactions).
 
+The tradeoff is higher read amplification, since a key might appear in multiple overlapping SSTables.
+
+### Reads
+
+```plaintext
+
+                ┌────────┐
+                │  Read  │
+                └───┬────┘
+                    ▼
+    ┌──────────────────────────────────┐
+    │  Memtable (in memory)            │
+    │  Immutable Memtable (flushing)   │
+    └───────────────┬──────────────────┘
+                    │ (not found in memory)
+                    ▼
+                    │ (check L0 bloom filter)
+                    ▼
+  L0 (on disk) - - - - - - - - - - - - - -
+        ┌────────┐     ┌────────┐
+        │   L0   │     │   L0   │
+        │ [SSTs] │     │ [SSTs] │
+        └────────┘     └────────┘
+            (return if found)
+                    ┬
+                    │ (check L1 bloom filter)
+                    ▼
+  L1 (on disk) - - - - - - - - - - - - - -
+  ┌───────────────┐   ┌───────────────┐
+  │      L1       │   │      L1       │
+  │    [SSTs]     │   │    [SSTs]     │
+  └───────────────┘   └───────────────┘
+            (return if found)
+                    ┬
+                    │ (check L2 bloom filter)
+                    ▼
+  L2 (on disk) - - - - - - - - - - - - - -
+  ┌───────────────────────────────────┐
+  │                 L2                │
+  │               [SSTs]              │
+  └───────────────────────────────────┘
+
+```
+
+Now that we've covered the high-level pieces on the write side, we can outline what an incoming read looks like.
+
+The main idea for reads is that we search using a layered approach since we know that our most recent writes will be in-memory, and then they move to disk progressing through older and larger SSTables.
+
+#### Step 1: Check the memtable
+Our first check should be seeing if our key lives in memory.  The memtable will hold our most recent writes, and we'll avoid disk I/O if we have a match.  If we're in the middle of a flush, we can also check the immutable memtable being flushed as that is still queryable.
+
+#### Step 2: Bloom filters
+Before scanning through SSTables on disk, we use bloom filters to rule out any files that _cannot_ contain the key.
+
+The tl;dr with bloom filters is that they either tell you that a key _probably exists_ in a set (false positives **are** possible here), or that a key does not exist in a set (false negatives are **not** possible).  This check is key in helping to minimize unnecessary disk I/O, and we can leverage it to skip levels entirely.
+
+#### Step 3: SSTables
+With some candidates filtered out, we search through the remaining SSTables in order from newest to oldest (newer tables have the newer writes), level by level.
+
+Because each SSTable is sorted by key, and having index blocks with each SSTable, we can achieve fairly efficient reads.  We can also take advantage of sequential I/O during scans because the tables were stored contiguously.
+
+---
+
+## Resources
+There are some links scattered throughout, but here are some useful resources that helped guide some of the writing above:
+- [RocksDB Overview](https://github.com/facebook/rocksdb/wiki/RocksDB-Overview)
+- [ScyllaDB Glossary](https://www.scylladb.com/glossary)
+- [The Secret Sauce Behind NoSQL: LSM Tree](https://www.youtube.com/watch?v=I6jB0nM9SKU)
