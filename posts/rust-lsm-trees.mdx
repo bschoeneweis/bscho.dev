@@ -120,12 +120,13 @@ The tradeoff is higher read amplification, since a key might appear in multiple 
   │    [SSTs]     │   │    [SSTs]     │
   └───────────────┘   └───────────────┘
             (return if found)
+                   ...
                     ┬
-                    │ (check L2 bloom filter)
+                    │ (check LN bloom filter)
                     ▼
-  L2 (on disk) - - - - - - - - - - - - - -
+  LN (on disk) - - - - - - - - - - - - - -
   ┌───────────────────────────────────┐
-  │                 L2                │
+  │                 LN                │
   │               [SSTs]              │
   └───────────────────────────────────┘
 
@@ -147,6 +148,304 @@ The tl;dr with bloom filters is that they either tell you that a key _probably e
 With some candidates filtered out, we search through the remaining SSTables in order from newest to oldest (newer tables have the newer writes), level by level.
 
 Because each SSTable is sorted by key, and having index blocks with each SSTable, we can achieve fairly efficient reads.  We can also take advantage of sequential I/O during scans because the tables were stored contiguously.
+
+## Implementation
+
+Now with some background, let's write out some of the basic pieces we described above.  This is meant to be a _very_ simple implementation just to illustrate key concepts, so we'll skip over some details and optimizations.
+
+Our goal here is to achieve a basic structure that looks like this:
+
+```rust
+pub struct LsmTree {
+    memtable: Memtable,
+    wal: Wal,
+    sstables: Vec<SSTable>,
+}
+```
+
+and we'll implement the following operations:
+
+```rust
+impl LsmTree {
+    const MAX_ENTRY_SIZE: usize = 64 * 1024; // 64 KB
+
+    pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) -> std::io::Result<()>;
+    pub fn get(&self, key: &[u8]) -> std::io::Result<Option<Vec<u8>>>;
+    pub fn flush(&mut self) -> std::io::Result<()>;
+}
+```
+
+Since we already have a lot of code to write, I'm going to skip over a few things like:
+- Deleting records (by adding tombstones, you can read more [here](https://disc-projects.bu.edu/lethe/#:~:text=Deletes%20in%20LSM%2Dtrees%20are,the%20physical%20target%20data%20entries.))
+- Index blocks for reads
+- Bloom filters for reads
+
+One other note is I'll be adding [anyhow](https://docs.rs/anyhow/latest/anyhow/) to simplify error handling (can be added with `cargo add anyhow`).
+
+Let's get started!
+
+### Memtable
+We'll start with the memtable.  Above we described that they typically use skip lists or red-black trees, to keep things simple we're going to use a [BTreeMap](https://doc.rust-lang.org/std/collections/struct.BTreeMap.html), which will still keep our memtable ordered by key.
+
+```rust
+use std::collections::BTreeMap;
+
+pub struct Memtable {
+    map: BTreeMap<Vec<u8>, Vec<u8>>,
+}
+
+impl Memtable {
+    pub fn new() -> Self {
+        Self {
+            map: BTreeMap::new(),
+        }
+    }
+
+    pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) {
+        self.map.insert(key, value);
+    }
+
+    pub fn get(&self, key: &[u8]) -> Option<&[u8]> {
+        self.map.get(key).map(|v| v.as_slice())
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&[u8], &[u8])> {
+        self.map
+            .iter()
+            .map(|(k, v)| (k.as_slice(), v.as_slice()))
+    }
+
+    pub fn size(&self) -> usize {
+        self.map.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.map.is_empty()
+    }
+
+    pub fn clear(&mut self) {
+        self.map.clear();
+    }
+}
+```
+
+Nothing crazy here as this is largely just a wrapper over built-in `BTreeMap` operations, but it will help us build upon the implementation in a bit.
+
+### WAL
+Next, we need some durability so we can sleep easy at night knowing our data is on-disk.
+
+A few small notes about the implementation here:
+- We're just going to follow a very basic log scheme of `<u32 key length><u32 value length><key bytes><val bytes>`
+- No deletes
+
+```rust
+use std::{
+    fs::{File, OpenOptions},
+    io::{BufReader, BufWriter, Read, Write},
+    path::{Path, PathBuf},
+};
+
+use anyhow::{anyhow, bail, Context, Result};
+
+fn read_entry_from_header(header: &[u8; 8]) -> Result<(Vec<u8>, Vec<u8>)> {
+    let key_length = u32::from_le_bytes(
+        header_buffer
+            .get(0..4)
+            .ok_or_else(|| anyhow!("Invalid header: missing key length"))?
+            .try_into()
+            .context("Invalid key length slice")?,
+    ) as usize;
+
+    let value_length = u32::from_le_bytes(
+        header_buffer
+            .get(4..8)
+            .ok_or_else(|| anyhow!("Invalid header: missing value length"))?
+            .try_into()
+            .context("Invalid value length slice")?,
+    ) as usize;
+
+    // defensive check to avoid any OOM even though we also check on write
+    if key_length > LsmTree::MAX_ENTRY_SIZE || value_length > LsmTree::MAX_ENTRY_SIZE {
+        bail!(
+            "Corrupt entry: header too large (key length={} value length={})",
+            key_length,
+            value_length
+        )
+    }
+
+    let mut key = vec![0u8; key_length];
+    reader.read_exact(&mut key)?;
+
+    let mut value = vec![0u8; value_length];
+    reader.read_exact(&mut value)?;
+
+    Ok((key, value))
+}
+
+pub struct Wal {
+    path: PathBuf,
+    writer: BufWriter<File>,
+}
+
+impl Wal {
+    pub fn open(path: &Path) -> Result<Self> {
+        let path = path.to_path_buf();
+        let file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .read(true)
+            .open(&path)?;
+
+        Ok(Self {
+            path,
+            writer: BufWriter::new(file),
+        })
+    }
+
+    /// Append a `Put(key, value)` record to the WAL and fsync
+    /// using the following log format:
+    /// `<u32 key length><u32 value length><key bytes><val bytes>`
+    pub fn append(&mut self, key: &[u8], value: &[u8]) -> Result<()> {
+        let key_length = key.len() as u32;
+        let value_length = value.len() as u32;
+
+        self.writer.write_all(&key_length.to_le_bytes())?;
+        self.writer.write_all(&value_length.to_le_bytes())?;
+        self.writer.write_all(key)?;
+        self.writer.write_all(value)?;
+
+        // flush buffer and sync the file for durability
+        self.writer.flush()?;
+        self.writer.get_ref().sync_all()?;
+
+        Ok(())
+    }
+
+    /// Replay all record in the WAL (returns key/value pairs to rebuild the memtable)
+    pub fn replay(&mut self) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
+        // flush our any buffered writes
+        self.writer.flush()?;
+
+        let file = OpenOptions::new().read(true).open(&self.path)?;
+        let mut reader = BufReader::new(file);
+
+        let mut records = Vec::new();
+        let mut header_buffer = [0u8; 8];
+
+        loop {
+            match reader.read_exact(&mut header_buffer) {
+                Ok(()) => {}
+                Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => break,
+                Err(e) => return Err(e).context("Failed to read WAL header"),
+            }
+
+            let (key, value) = read_entry_from_header(&header_buffer)?;
+            records.push((key, value));
+        }
+
+        Ok(records)
+    }
+
+    /// Purges the WAL after a flush
+    pub fn purge(&mut self) -> Result<()> {
+        // truncate then re-init
+        OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(&self.path)?;
+
+        let file = OpenOptions::new()
+            .append(true)
+            .read(true)
+            .open(&self.path)?;
+
+        self.writer = BufWriter::new(file);
+
+        Ok(())
+    }
+}
+```
+
+### SSTables
+We'll also make a few simplifying assumptions for the SSTable implementation.
+- One file per flush
+- File is sorted by entry key
+
+```rust
+pub struct SSTable {
+    path: PathBuf,
+}
+
+impl SSTable {
+    /// Creates an SSTable file from the data in a memtable.
+    /// Format of the entries remains the same.
+    pub fn from_memtable(path: &Path, memtable: &Memtable) -> Result<Self> {
+        let path_buf = path.to_path_buf();
+        let mut file = File::create(&path)?;
+
+        // write all of the pre-sorted data
+        for (key, value) in memtable.iter() {
+            let key_length = key.len() as u32;
+            let value_length = value.len() as u32;
+            file.write_all(&key_length.to_le_bytes())?;
+            file.write_all(&value_length.to_le_bytes())?;
+            file.write_all(key)?;
+            file.write_all(value)?;
+        }
+
+        file.flush()?;
+        file.sync_all()?;
+
+        Ok(Self { path: path_buf })
+    }
+
+    /// Find a single key on-disk.
+    /// Sequentially scans each record until a match is found or we EOF.
+    pub fn get(&self, target_key: &[u8]) -> Result<Option<Vec<u8>>> {
+        let file = File::open(&self.path)?;
+        let mut reader = BufReader::new(file);
+
+        let mut header_buffer = [0u8; 8];
+        loop {
+            match reader.read_exact(&mut header_buffer) {
+                Ok(()) => {}
+                Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => break,
+                Err(e) => return Err(e).context("Failed to read SSTable header"),
+            }
+
+            let (key, value) = read_entry_from_header(&header_buffer)?;
+            if target_key == key {
+                return Ok(Some(value));
+            }
+        }
+
+        Ok(None)
+    }
+
+    /// Simple iterator for convenience to go over all key/values
+    /// in an SSTable (primarily for compaction)
+    pub fn iter(&self) -> Result<impl Iterator<Item = Result<(Vec<u8>, Vec<u8>)>>> {
+        let file = File::open(&self.path)?;
+        let mut reader = BufReader::new(file);
+
+        let mut header_buffer = [0u8; 8];
+
+        Ok(std::iter::from_fn(move || {
+            match reader.read_exact(&mut header_buffer) {
+                Ok(()) => {}
+                Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => return None,
+                Err(e) => return Some(Err(e).context("Failed to read SSTable header")),
+            }
+
+            match read_entry_from_header(&header_buffer) {
+                Ok((key, value)) => Some(Ok((key, value))),
+                Err(e) => Some(Err(e)),
+            }
+        }))
+    }
+}
+```
 
 ---
 
