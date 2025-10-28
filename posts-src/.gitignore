@@ -1,6 +1,7 @@
 # Ignore all Cargo build outputs (debug and release)
 **/target/
 **/debug/
+**/tmp/
 **/release/
 **/.cargo/
 **/.rustup/
