@@ -56,8 +56,7 @@ impl LsmTree {
                     let sstable_id_opt = file_name
                         .strip_prefix(SSTable::FILE_NAME_PREFIX)
                         .and_then(|s| s.strip_suffix(SSTable::FILE_EXT))
-                        .map(|s| s.parse::<u32>().ok())
-                        .flatten();
+                        .and_then(|s| s.parse::<u32>().ok());
 
                     if let Some(sstable_id) = sstable_id_opt {
                         sstables_with_id.push((
@@ -143,12 +142,12 @@ impl LsmTree {
         Ok(())
     }
 
-    /// Very basic compaction that is called separately.
+    /// Very basic compaction that is called independently.
     /// It will take all SSTables, merge them, sort the merged map,
     /// write all of them as a single SStable, and then drop the old tables
     pub fn compact_all(&mut self) -> Result<()> {
         // we wouldn't generally use the memtable to do this, but all of the
-        // operations are setup for us, we so can use on ehere
+        // operations are setup for us, we so can use one here
         let mut merged = Memtable::new();
 
         for table in &self.sstables {
@@ -232,6 +231,12 @@ fn read_entry_from_header(reader: &mut BufReader<File>) -> Result<Option<(Vec<u8
 #[derive(Debug)]
 pub struct Memtable {
     map: BTreeMap<Vec<u8>, Vec<u8>>,
+}
+
+impl Default for Memtable {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Memtable {
@@ -364,7 +369,7 @@ impl SSTable {
     /// Format of the entries remains the same.
     pub fn from_memtable(path: &Path, memtable: &Memtable) -> Result<Self> {
         let path_buf = path.to_path_buf();
-        let mut file = File::create(&path)?;
+        let mut file = File::create(path)?;
 
         // write all of the pre-sorted data
         for (key, value) in memtable.iter() {
@@ -412,7 +417,7 @@ impl SSTable {
             match read_entry_from_header(&mut reader) {
                 Ok(Some((key, value))) => Some(Ok((key, value))),
                 Ok(None) => None, // EOF
-                Err(e) => return Some(Err(e).context("Failed to read SSTable record")),
+                Err(e) => Some(Err(e).context("Failed to read SSTable record")),
             }
         }))
     }

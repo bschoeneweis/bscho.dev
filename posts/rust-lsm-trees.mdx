@@ -1,6 +1,6 @@
 ---
 title: 'A simple log-structured merge tree in Rust'
-date: '2025-10-22'
+date: '2025-10-28'
 tags: ['rust', 'search']
 description: 'Building a simple log-structured merge tree (LSM tree) from scratch in Rust.'
 ---
@@ -161,6 +161,7 @@ pub struct LsmTree {
     wal: Wal,
     sstables: Vec<SSTable>,
     path: PathBuf,
+    next_sstable_id: u8,
 }
 ```
 
@@ -168,17 +169,17 @@ and we'll implement the following operations:
 
 ```rust
 impl LsmTree {
+    pub fn open(path: &Path) -> Result<Self>; // replays if exists
     pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) -> Result<()>;
     pub fn get(&self, key: &[u8]) -> Result<Option<Vec<u8>>>;
     pub fn flush(&mut self) -> Result<()>;
-    pub fn compact_all(&mut self) -> Result<()>; // very basice
+    pub fn compact_all(&mut self) -> Result<()>; // very basic
 }
 ```
 
 Since we already have a lot of code to write, I'm going to skip over a few things like:
 - Deleting records (by adding tombstones, you can read more [here](https://disc-projects.bu.edu/lethe/#:~:text=Deletes%20in%20LSM%2Dtrees%20are,the%20physical%20target%20data%20entries.))
-- Index blocks for reads
-- Bloom filters for reads
+- Index blocks and bloom filters for reads
 - We'll assume we're in a single-threaded environment / avoid parallelism
 
 One other note is I'll be adding [anyhow](https://docs.rs/anyhow/latest/anyhow/) to simplify error handling (can be added with `cargo add anyhow`).
@@ -193,6 +194,12 @@ use std::collections::BTreeMap;
 
 pub struct Memtable {
     map: BTreeMap<Vec<u8>, Vec<u8>>,
+}
+
+impl Default for Memtable {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Memtable {
@@ -396,7 +403,7 @@ impl SSTable {
     /// Format of the entries remains the same.
     pub fn from_memtable(path: &Path, memtable: &Memtable) -> Result<Self> {
         let path_buf = path.to_path_buf();
-        let mut file = File::create(&path)?;
+        let mut file = File::create(path)?;
 
         // write all of the pre-sorted data
         for (key, value) in memtable.iter() {
@@ -444,7 +451,7 @@ impl SSTable {
             match read_entry_from_header(&mut reader) {
                 Ok(Some((key, value))) => Some(Ok((key, value))),
                 Ok(None) => None, // EOF
-                Err(e) => return Some(Err(e).context("Failed to read SSTable record")),
+                Err(e) => Some(Err(e).context("Failed to read SSTable record")),
             }
         }))
     }
@@ -505,8 +512,7 @@ impl LsmTree {
                     let sstable_id_opt = file_name
                         .strip_prefix(SSTable::FILE_NAME_PREFIX)
                         .and_then(|s| s.strip_suffix(SSTable::FILE_EXT))
-                        .map(|s| s.parse::<u32>().ok())
-                        .flatten();
+                        .and_then(|s| s.parse::<u32>().ok());
 
                     if let Some(sstable_id) = sstable_id_opt {
                         sstables_with_id.push((
@@ -592,12 +598,12 @@ impl LsmTree {
         Ok(())
     }
 
-    /// Very basic compaction that is called separately.
+    /// Very basic compaction that is called independently.
     /// It will take all SSTables, merge them, sort the merged map,
     /// write all of them as a single SStable, and then drop the old tables
     pub fn compact_all(&mut self) -> Result<()> {
         // we wouldn't generally use the memtable to do this, but all of the
-        // operations are setup for us, we so can use on ehere
+        // operations are setup for us, we so can use one here
         let mut merged = Memtable::new();
 
         for table in &self.sstables {
@@ -618,7 +624,8 @@ impl LsmTree {
 
         let compacted_table = SSTable::from_memtable(&path, &merged)?;
 
-        let paths_to_delete: Vec<PathBuf> = self.sstables.iter().map(|sst| sst.path.clone()).collect();
+        let paths_to_delete: Vec<PathBuf> =
+            self.sstables.iter().map(|sst| sst.path.clone()).collect();
 
         self.sstables.clear();
         self.sstables.push(compacted_table);
@@ -634,7 +641,7 @@ impl LsmTree {
 ```
 
 ### Trying it out
-With everything in places, let's try a few operations and see how we do.
+With everything in place, let's try a few operations and see how we do.
 
 ```rust
 fn main() -> Result<()> {
@@ -657,60 +664,58 @@ fn main() -> Result<()> {
 ```
 
 ```plaintext
-ring bearer   -> Some("Frodo Baggins")
-wizard        -> Some("Gandalf the Grey")
-meal          -> Some("second breakfast")
-pipeweed      -> Some("Longbottom Leaf")
-dragon        -> None
+ ring bearer   -> Some("Frodo Baggins")
+ wizard        -> Some("Gandalf the Grey")
+ meal          -> Some("second breakfast")
+ pipeweed      -> Some("Longbottom Leaf")
+ dragon        -> None
 ```
 
-Looks like `put` and `get` are working as expected!  You can also notice that a WAL file was created in our tmp directory after you run this for the first time.
+Looks like `put` and `get` are working as expected!  You can also notice that a WAL file was created in our `tmp/` directory after you run this for the first time.
 
-We can quickly check that the replay works as expected be commenting out the `put` calls to see if we can still get our data.
+We can quickly check that the replay works as expected by commenting out the `put` calls to see if we can still get our data.
 
 ```rust
-fn main() -> Result<()> {
-    let lsm_tree_path = Path::new("./tmp");
-    let mut lsm_tree = LsmTree::open(lsm_tree_path)?;
+// ... still in main
 
-    // lsm_tree.put(b"ring bearer".to_vec(), b"Frodo Baggins".to_vec())?;
-    // lsm_tree.put(b"wizard".to_vec(), b"Gandalf the Grey".to_vec())?;
-    // lsm_tree.put(b"meal".to_vec(), b"second breakfast".to_vec())?;
-    // lsm_tree.put(b"pipeweed".to_vec(), b"Longbottom Leaf".to_vec())?;
+let lsm_tree_path = Path::new("./tmp");
+let mut lsm_tree = LsmTree::open(lsm_tree_path)?;
 
-    println!("ring bearer   -> {:?}", lsm_tree.get(b"ring bearer")?.map(|b| String::from_utf8_lossy(&b).to_string()));
-    println!("wizard        -> {:?}", lsm_tree.get(b"wizard")?.map(|b| String::from_utf8_lossy(&b).to_string()));
-    println!("meal          -> {:?}", lsm_tree.get(b"meal")?.map(|b| String::from_utf8_lossy(&b).to_string()));
-    println!("pipeweed      -> {:?}", lsm_tree.get(b"pipeweed")?.map(|b| String::from_utf8_lossy(&b).to_string()));
-    println!("dragon        -> {:?}", lsm_tree.get(b"dragon")?.map(|b| String::from_utf8_lossy(&b).to_string())); // not there, currently in The Lonely Mountain
+// lsm_tree.put(b"ring bearer".to_vec(), b"Frodo Baggins".to_vec())?;
+// lsm_tree.put(b"wizard".to_vec(), b"Gandalf the Grey".to_vec())?;
+// lsm_tree.put(b"meal".to_vec(), b"second breakfast".to_vec())?;
+// lsm_tree.put(b"pipeweed".to_vec(), b"Longbottom Leaf".to_vec())?;
 
-    Ok(())
-}
+println!("ring bearer   -> {:?}", lsm_tree.get(b"ring bearer")?.map(|b| String::from_utf8_lossy(&b).to_string()));
+println!("wizard        -> {:?}", lsm_tree.get(b"wizard")?.map(|b| String::from_utf8_lossy(&b).to_string()));
+println!("meal          -> {:?}", lsm_tree.get(b"meal")?.map(|b| String::from_utf8_lossy(&b).to_string()));
+println!("pipeweed      -> {:?}", lsm_tree.get(b"pipeweed")?.map(|b| String::from_utf8_lossy(&b).to_string()));
+println!("dragon        -> {:?}", lsm_tree.get(b"dragon")?.map(|b| String::from_utf8_lossy(&b).to_string())); // not there, currently in The Lonely Mountain
 ```
 
 ```plaintext
-ring bearer   -> Some("Frodo Baggins")
-wizard        -> Some("Gandalf the Grey")
-meal          -> Some("second breakfast")
-pipeweed      -> Some("Longbottom Leaf")
-dragon        -> None
+ ring bearer   -> Some("Frodo Baggins")
+ wizard        -> Some("Gandalf the Grey")
+ meal          -> Some("second breakfast")
+ pipeweed      -> Some("Longbottom Leaf")
+ dragon        -> None
 ```
 
 Pretty sweet.  Now let's try flushing.
 
 ```rust
-    lsm_tree.flush()?;
+lsm_tree.flush()?;
 
-    println!("(after flush)...");
+println!("(after flush)...");
 
-    println!("ring bearer   -> {:?}", lsm_tree.get(b"ring bearer")?.map(|b| String::from_utf8_lossy(&b).to_string()));
-    println!("wizard        -> {:?}", lsm_tree.get(b"wizard")?.map(|b| String::from_utf8_lossy(&b).to_string()));
-    println!("meal          -> {:?}", lsm_tree.get(b"meal")?.map(|b| String::from_utf8_lossy(&b).to_string()));
-    println!("pipeweed      -> {:?}", lsm_tree.get(b"pipeweed")?.map(|b| String::from_utf8_lossy(&b).to_string()));
-    println!("dragon        -> {:?}", lsm_tree.get(b"dragon")?.map(|b| String::from_utf8_lossy(&b).to_string())); // not there, currently in The Lonely Mountain
+println!("ring bearer   -> {:?}", lsm_tree.get(b"ring bearer")?.map(|b| String::from_utf8_lossy(&b).to_string()));
+println!("wizard        -> {:?}", lsm_tree.get(b"wizard")?.map(|b| String::from_utf8_lossy(&b).to_string()));
+println!("meal          -> {:?}", lsm_tree.get(b"meal")?.map(|b| String::from_utf8_lossy(&b).to_string()));
+println!("pipeweed      -> {:?}", lsm_tree.get(b"pipeweed")?.map(|b| String::from_utf8_lossy(&b).to_string()));
+println!("dragon        -> {:?}", lsm_tree.get(b"dragon")?.map(|b| String::from_utf8_lossy(&b).to_string())); // not there, currently in The Lonely Mountain
 ```
 
-You should notice that a `sstable_0.sst` file appeared.  Looks like it worked as expected.
+You should notice that a `tmp/sstable_0.sst` file appeared.  Looks like it worked as expected.
 
 Now let's try updating a value with `put` to see if our layered search approach works correctly.  If it does, the value will get written to the memtable and on `get` we should check there first, returning the new value.
 
@@ -720,7 +725,7 @@ println!("meal (new)    -> {:?}", lsm_tree.get(b"meal")?.map(|b| String::from_ut
 ```
 
 ```plaintext
-meal (new)    -> Some("elevenses")
+ meal (new)    -> Some("elevenses")
 ```
 
 Let's flush again so we now have two SSTables, and we can see if our latest write still wins.
@@ -738,17 +743,17 @@ println!("dragon        -> {:?}", lsm_tree.get(b"dragon")?.map(|b| String::from_
 ```
 
 ```plaintext
-(after second flush)
-ring bearer   -> Some("Frodo Baggins")
-wizard        -> Some("Gandalf the Grey")
-meal (new)    -> Some("elevenses")
-pipeweed      -> Some("Longbottom Leaf")
-dragon        -> None
+ (after second flush)
+ ring bearer   -> Some("Frodo Baggins")
+ wizard        -> Some("Gandalf the Grey")
+ meal (new)    -> Some("elevenses")
+ pipeweed      -> Some("Longbottom Leaf")
+ dragon        -> None
 ```
 
-Looks correct!  We can also see that `sstable_1.sst` appeared, which is expected as well.
+Looks correct!  We can also see that `tmp/sstable_1.sst` appeared, which is expected.
 
-Last thing to try is compaction.  Let's give it a go.
+The last thing to try is compaction.  Let's give it a go.
 
 ```rust
 lsm_tree.compact_all()?;
@@ -762,15 +767,23 @@ println!("dragon        -> {:?}", lsm_tree.get(b"dragon")?.map(|b| String::from_
 ```
 
 ```plaintext
-(after compaction)
-ring bearer   -> Some("Frodo Baggins")
-wizard        -> Some("Gandalf the Grey")
-meal (new)    -> Some("elevenses")
-pipeweed      -> Some("Longbottom Leaf")
-dragon        -> None
+ (after compaction)
+ ring bearer   -> Some("Frodo Baggins")
+ wizard        -> Some("Gandalf the Grey")
+ meal (new)    -> Some("elevenses")
+ pipeweed      -> Some("Longbottom Leaf")
+ dragon        -> None
 ```
 
-Works as expected!  You'll notice we cleaned up the two old SSTables and merged them into a combined `sstable_2.sst`.
+Works as expected!  You'll notice we cleaned up the two old SSTables and merged them into a combined `tmp/sstable_2.sst`.
+
+---
+
+Even through a toy implementation we can start to understand the inner mechanics, and see the utility of LSM trees.  There are countless optimizations we could layer on top, some we touched on (like index blocks and bloom filters), and others we didn't explore, such as caching, compression, and background compaction strategies.
+
+All in all, LSM trees underpin a huge portion of modern data infrastructure, and hopefully this served as an approachable introduction to how they work under the hood.
+
+Thanks for reading!  You can find the full source code for this implementation [here](https://github.com/bschoeneweis/bscho.dev/blob/main/posts-src/lsm_tree/src/main.rs).
 
 ---
 
@@ -779,3 +792,5 @@ There are some links scattered throughout, but here are some useful resources th
 - [RocksDB Overview](https://github.com/facebook/rocksdb/wiki/RocksDB-Overview)
 - [ScyllaDB Glossary](https://www.scylladb.com/glossary)
 - [The Secret Sauce Behind NoSQL: LSM Tree](https://www.youtube.com/watch?v=I6jB0nM9SKU)
+
+---
