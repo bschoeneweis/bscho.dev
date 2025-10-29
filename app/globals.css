@@ -56,6 +56,14 @@ article > ul > li > a:hover {
   text-decoration: underline;
 }
 
+article > blockquote > p > a {
+  color: var(--link-blue);
+}
+
+article > blockquote > p > a:hover {
+  text-decoration: underline;
+}
+
 article > h2 {
   font-size: 1.625rem;
   line-height: 1.35;
@@ -173,6 +181,10 @@ code:not([data-theme="github-dark"]) {
   code[data-theme="github-dark"] {
     font-size: 12px;
   }
+}
+
+code[data-language="plaintext"] > [data-line]::before {
+  display: none;
 }
 
 li {
