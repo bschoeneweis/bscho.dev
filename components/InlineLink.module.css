@@ -2,6 +2,7 @@
   color: var(--link-blue);
   text-decoration: underline;
   transition-duration: var(--transition-duration);
+  text-shadow: none;
 }
 
 .inlineLink:hover {

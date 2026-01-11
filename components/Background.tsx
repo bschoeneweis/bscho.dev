@@ -7,7 +7,7 @@ import React from 'react'
 export const Background = () => {
   const pathname = usePathname();
   const isWriting = pathname.startsWith('/writing/');
-  const bgImage = isWriting ? 'background.svg' : 'background-scene.png';
+  const bgImage = isWriting ? 'background.svg' : 'castle-with-river.png';
   const src = `/images/${bgImage}`;
 
   return (

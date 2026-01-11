@@ -4,16 +4,19 @@ import styles from './InlineLink.module.css';
 
 export const InlineLink = ({
   children,
-  href
+  href,
+  colorOverride,
 }: {
   children: JSX.Element | string;
   href: string;
+  colorOverride?: string;
 }) => (
   <a
     className={styles.inlineLink}
     href={href}
     target="_blank"
     rel="nofollow noopener noreferrer"
+    style={{ color: colorOverride }}
   >
     {children}
   </a>
