@@ -18,7 +18,11 @@ export const Background = () => {
       quality={100}
       fill
       sizes="100vw"
-      style={{ objectFit: 'cover', zIndex: -1 }}
+      style={{
+        objectFit: 'cover',
+        zIndex: -1,
+        backgroundSize: 'cover',
+      }}
     />
   );
 };

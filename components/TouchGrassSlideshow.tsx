@@ -29,6 +29,12 @@ const homeSvg = (
   </svg>
 );
 
+const imageObjectPosistions: Record<string, string> = {
+  'deers-in-forest.jpg': '75% 50%',
+  'single-ship.jpg': '40% 50%',
+  'japanese-castle.jpg': '60% 50%',
+};
+
 export const TouchGrassSlideShow = ({ imageList, dirPath }: TouchGrassSlideShowProps) => {
   const router = useRouter();
 
@@ -95,6 +101,7 @@ export const TouchGrassSlideShow = ({ imageList, dirPath }: TouchGrassSlideShowP
   }, [router, goToNext, goToPrevious]);
 
   const currentImage = shuffledImages[currentIndex];
+  const objectPosition = imageObjectPosistions[currentImage] ?? 'unset';
 
   return (
     <div className={styles.container}>
@@ -102,7 +109,9 @@ export const TouchGrassSlideShow = ({ imageList, dirPath }: TouchGrassSlideShowP
         src={`/${dirPath}/${currentImage}`}
         alt="Slideshow image"
         fill
+        sizes="100vw"
         className={styles.image}
+        style={{ objectPosition }}
         priority
       />
 
