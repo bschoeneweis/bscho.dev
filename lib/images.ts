@@ -5,6 +5,6 @@ const touchGrassPath = 'public/images/touch-ai-grass';
 const postsPath = path.join(process.cwd(), touchGrassPath);
 
 export const getTouchGrassImageList = () => {
-    const images = fs.readdirSync(postsPath);
+    const images = fs.readdirSync(postsPath).filter((x) => x.endsWith('.png') || x.endsWith('.jpg'));
     return { images, dirPath: touchGrassPath.replace('public/', '')};
 }

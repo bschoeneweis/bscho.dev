@@ -8,13 +8,17 @@ import { Avatar } from './Avatar'
 
 import styles from './Header.module.css'
 
-const getOpacity = (activePath: string, headerPath: string) =>
+const getClass = (activePath: string, headerPath: string) =>
   activePath === headerPath
-    ? 1
-    : 0.6;
+    ? 'active'
+    : 'linkHover';
 
 export const Header = () => {
   const pathname = usePathname();
+
+  if (pathname === '/touch-ai-grass') {
+    return <></>;
+  }
 
   return (
     <header className={ styles.header }>
@@ -22,22 +26,19 @@ export const Header = () => {
         <div className={ styles.linkContainer }>
           <Link
             href={`/`}
-            style={{ opacity: getOpacity(pathname, '/') }}
-            className={ styles.linkHover }
+            className={ styles[getClass(pathname, '/')] }
           >
             about
           </Link>
           <Link
             href={`/writing`}
-            style={{ opacity: getOpacity(pathname, '/writing') }}
-            className={ styles.linkHover }
+            className={ styles[getClass(pathname, '/writing')] }
           >
             writing
           </Link>
           <Link
             href={`/works`}
-            style={{ opacity: getOpacity(pathname, '/works') }}
-            className={ styles.linkHover }
+            className={ styles[getClass(pathname, '/works')] }
           >
             works
           </Link>

@@ -1,6 +1,8 @@
 .inlineLink {
   color: var(--link-blue);
   text-decoration: underline;
+  text-underline-offset: var(--text-underline-offset);
+  text-decoration-thickness: var(--text-underline-thickness);
   transition-duration: var(--transition-duration);
   text-shadow: none;
 }

@@ -8,7 +8,7 @@ import styles from './TouchGrassSlideshow.module.css'
 import { useRouter } from 'next/navigation'
 
 interface TouchGrassSlideShowProps {
-  imageList: string[];
+  images: string[];
   dirPath: string;
 }
 
@@ -29,53 +29,31 @@ const homeSvg = (
   </svg>
 );
 
-const imageObjectPosistions: Record<string, string> = {
-  'deers-in-forest.jpg': '75% 50%',
-  'single-ship.jpg': '40% 50%',
-  'japanese-castle.jpg': '60% 50%',
-};
-
-export const TouchGrassSlideShow = ({ imageList, dirPath }: TouchGrassSlideShowProps) => {
+export const TouchGrassSlideShow = ({ images, dirPath }: TouchGrassSlideShowProps) => {
   const router = useRouter();
 
-  const [shuffledImages, setShuffledImages] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [timerKey, setTimerKey] = useState<number>(0);
 
-  const shuffleArray = useCallback((array: string[]): string[] => {
-    const newArray = [...array];
-    for (let i = newArray.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-    }
-    return newArray;
-  }, []);
-
-  useEffect(() => {
-    if (imageList.length > 0) {
-      setShuffledImages(shuffleArray(imageList));
-    }
-  }, [imageList, shuffleArray]);
-
   const goToNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev + 1 >= shuffledImages.length ? 0 : prev + 1));
+    setCurrentIndex((prev) => (prev + 1 >= images.length ? 0 : prev + 1));
     setTimerKey((prev) => prev + 1); // reset the timer
-  }, [shuffledImages.length]);
+  }, [images.length]);
 
   const goToPrevious = useCallback(() => {
-    setCurrentIndex((prev) => (prev - 1 < 0 ? shuffledImages.length - 1 : prev - 1));
+    setCurrentIndex((prev) => (prev - 1 < 0 ? images.length - 1 : prev - 1));
     setTimerKey((prev) => prev + 1); // reset the timer
-  }, [shuffledImages.length]);
+  }, [images.length]);
 
   useEffect(() => {
-    if (shuffledImages.length === 0) return;
+    if (images.length === 0) return;
 
     const interval = setInterval(() => {
       goToNext();
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [shuffledImages, goToNext, timerKey]);
+  }, [images, goToNext, timerKey]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -100,20 +78,24 @@ export const TouchGrassSlideShow = ({ imageList, dirPath }: TouchGrassSlideShowP
     };
   }, [router, goToNext, goToPrevious]);
 
-  const currentImage = shuffledImages[currentIndex];
-  const objectPosition = imageObjectPosistions[currentImage] ?? 'unset';
-
   return (
     <div className={styles.container}>
-      <Image
-        src={`/${dirPath}/${currentImage}`}
-        alt="Slideshow image"
-        fill
-        sizes="100vw"
-        className={styles.image}
-        style={{ objectPosition }}
-        priority
-      />
+      {images.map((img, index) => {
+        const isActive = index === currentIndex;
+        const isPriority = index === 0;
+
+        return (
+          <Image
+            key={img}
+            src={`/${dirPath}/${img}`}
+            alt={`Slide ${index}`}
+            fill
+            sizes="100vw"
+            className={`${styles.image} ${isActive ? styles.activeImage : ''}`}
+            priority={isPriority}
+          />
+        );
+      })}
 
       <div className={styles.overlay}>
         <div className={styles.controlsRow}>
