@@ -3,7 +3,7 @@ import './globals.css';
 import { Analytics } from "@vercel/analytics/react"
 import { GeistSans } from 'geist/font/sans';
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 
 import { Background } from '@/components/Background';
 import { Header } from '@/components/Header';
@@ -13,6 +13,12 @@ import styles from './layout.module.css';
 export const metadata: Metadata = {
   title: 'Bradley Schoeneweis',
   description: 'Bradley Schoeneweis',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
