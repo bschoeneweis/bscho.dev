@@ -23,7 +23,7 @@ export default async function Post(props: { params: Params }) {
   const { title, date, markdownContent } = postData;
 
   return (
-    <article>
+    <article className="writingPostPage">
       <div className={styles.articleHeading}>
         <h1 className={styles.xlHeading}>{title}</h1>
         <small className={styles.dateSubtitle}>{getFormattedDateString(date)}</small>

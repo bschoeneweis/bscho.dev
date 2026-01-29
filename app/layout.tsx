@@ -5,7 +5,6 @@ import { GeistSans } from 'geist/font/sans';
 
 import type { Metadata, Viewport } from 'next';
 
-import { Background } from '@/components/Background';
 import { Header } from '@/components/Header';
 
 import styles from './layout.module.css';
@@ -29,10 +28,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={GeistSans.className}>
-        <Background/>
-        <main className={styles.main}>
+        <main className={`${styles.main} mainLayout`}>
           <Header/>
-          <section className={styles.section}>
+          <section className={`${styles.section} mainSection`}>
             {children}
             <Analytics />
           </section>

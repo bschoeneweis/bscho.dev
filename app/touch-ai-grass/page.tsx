@@ -15,6 +15,8 @@ export default async function TouchAiGrass() {
   const shuffledImages = shuffleArray(images);
 
   return (
-    <TouchGrassSlideShow images={shuffledImages} dirPath={dirPath} />
+    <div className="touchGrassPage">
+      <TouchGrassSlideShow images={shuffledImages} dirPath={dirPath} />
+    </div>
   );
 }
