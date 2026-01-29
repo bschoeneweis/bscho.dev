@@ -1,5 +1,5 @@
 .container {
-  height: 100dvh;
+  height: 100%;
   width: 100vw;
   overflow: hidden;
   background-color: #000;
@@ -8,16 +8,6 @@
   left: 0;
   right: 0;
   bottom: 0;
-}
-
-@supports (-webkit-touch-callout: none) {
-  .container {
-    top: calc(-1 * env(safe-area-inset-top) - 200px);
-    height: calc(100dvh + env(safe-area-inset-top) + 200px);
-    min-height: calc(100dvh + env(safe-area-inset-top) + 200px);
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-  }
 }
 
 .image {

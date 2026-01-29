@@ -31,40 +31,39 @@ body {
   text-shadow: 0 2px 2px rgba(0, 0, 0, 0.35);
 }
 
-body {
+html {
   position: relative;
 }
 
-body::before {
+html::before {
   content: '';
   position: fixed;
-  inset: 0;
-  top: calc(-1 * env(safe-area-inset-top));
+  top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   width: 100vw;
   height: 100vh;
-  min-height: 100vh;
+  height: 100dvh;
   z-index: -1;
   background-image: url('/images/rolling-hills.png');
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center top;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
 }
 
-/* iOS Safari specific fixes */
+/* iOS Safari - extend background behind browser UI */
 @supports (-webkit-touch-callout: none) {
-  body::before {
-    top: calc(-1 * env(safe-area-inset-top) - 200px);
-    height: calc(100dvh + env(safe-area-inset-top) + 200px);
-    min-height: calc(100dvh + env(safe-area-inset-top) + 200px);
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
+  html::before {
+    top: -200px;
+    height: calc(100dvh + 200px);
+    min-height: calc(100dvh + 200px);
   }
 }
 
-body:has(.writingPostPage)::before {
+html:has(.writingPostPage)::before {
   background-image: url('/images/background.svg');
 }
 
@@ -72,7 +71,7 @@ body:has(.touchGrassPage) {
   background-color: #000;
 }
 
-body:has(.touchGrassPage)::before {
+html:has(.touchGrassPage)::before {
   content: none;
 }
 
