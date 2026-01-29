@@ -10,6 +10,16 @@
   bottom: 0;
 }
 
+@supports (-webkit-touch-callout: none) {
+  .container {
+    top: calc(-1 * env(safe-area-inset-top) - 200px);
+    height: calc(100dvh + env(safe-area-inset-top) + 200px);
+    min-height: calc(100dvh + env(safe-area-inset-top) + 200px);
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+}
+
 .image {
   object-fit: cover;
   opacity: 0;

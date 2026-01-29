@@ -44,12 +44,24 @@ body::before {
   right: 0;
   bottom: 0;
   width: 100vw;
-  height: calc(100svh + env(safe-area-inset-top));
+  height: 100vh;
+  min-height: 100vh;
   z-index: -1;
   background-image: url('/images/rolling-hills.png');
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center top;
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  body::before {
+    top: calc(-1 * env(safe-area-inset-top) - 200px);
+    height: calc(100dvh + env(safe-area-inset-top) + 200px);
+    min-height: calc(100dvh + env(safe-area-inset-top) + 200px);
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
 }
 
 body:has(.writingPostPage)::before {
