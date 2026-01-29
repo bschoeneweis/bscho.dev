@@ -25,53 +25,24 @@ body {
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
   -webkit-overflow-scrolling: touch;
+  background-image: url('/images/rolling-hills.png');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center top;
+  background-attachment: fixed;
   padding: 0;
   margin: 0;
   color: white;
   text-shadow: 0 2px 2px rgba(0, 0, 0, 0.35);
 }
 
-html {
-  position: relative;
-}
-
-html::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100vw;
-  min-height: 100dvh;
-  z-index: -1;
-  background-image: url('/images/rolling-hills.png');
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center top;
-  -webkit-transform: translate3d(0, 0, 0);
-  transform: translate3d(0, 0, 0);
-}
-
-/* iOS Safari - extend background behind browser UI */
-@supports (-webkit-touch-callout: none) {
-  html::before {
-    top: -200px;
-    height: calc(100dvh + 200px);
-    min-height: calc(100dvh + 200px);
-  }
-}
-
-html:has(.writingPostPage)::before {
+body:has(.writingPostPage) {
   background-image: url('/images/background.svg');
 }
 
 body:has(.touchGrassPage) {
+  background-image: none;
   background-color: #000;
-}
-
-html:has(.touchGrassPage)::before {
-  content: none;
 }
 
 body:has(.touchGrassPage) .mainLayout {
