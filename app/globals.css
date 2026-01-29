@@ -59,9 +59,9 @@ body:has(.touchGrassPage) .mainSection {
 
 /* Mobile */
 @media (max-width: 700px) {
-  body:has(.homePageHeader) {
+  body:has(.fixedPage) {
     overflow-y: hidden;
-    min-height: 110%;
+    min-height: 100lvh;
   }
 }
 

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function WorksIndex() {
   return (
     <>
-    <p className={styles.worksTitle}>A few interesting things I&apos;ve worked on:</p>
+    <p className={`${styles.worksTitle} fixedPage`}>A few interesting things I&apos;ve worked on:</p>
     <div className={styles.linkList}>
       <ArrowLink href='http://archive.today/ZyzEk' isExternalLink>
         <span className={styles.linkListItem}>How we replaced Elasticsearch and MongoDB with Rust and RocksDB</span>
