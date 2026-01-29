@@ -25,11 +25,12 @@
 }
 
 .linkHover {
-  opacity: 0.65;
+  opacity: 0.75;
 }
 
 .linkHover:hover {
   opacity: 1 !important;
+  text-shadow: var(--text-shadow);
 }
 
 .active {
