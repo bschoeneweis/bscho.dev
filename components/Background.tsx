@@ -11,18 +11,16 @@ export const Background = () => {
   const src = `/images/${bgImage}`;
 
   return (
-    <Image
-      className={isWriting ? '' : "background-img"}
-      alt="Background"
-      src={src}
-      quality={100}
-      fill
-      sizes="100vw"
-      style={{
-        objectFit: 'cover',
-        zIndex: -1,
-        backgroundSize: 'cover',
-      }}
-    />
+    <div className="background-root">
+      <Image
+        alt="Background"
+        src={src}
+        quality={100}
+        fill
+        sizes="100vw"
+        priority
+        style={{ objectFit: 'cover' }}
+      />
+    </div>
   );
 };
