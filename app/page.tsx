@@ -14,7 +14,7 @@ export default function Home() {
         <ArrowLink href='https://github.com/bschoeneweis' isExternalLink>github</ArrowLink>
         <ArrowLink href='mailto:bradley.schoeneweis@gmail.com' isExternalLink>contact</ArrowLink>
         <ArrowLink href='/surprise'>surprise</ArrowLink>
-        <ArrowLink href='/touch-ai-grass'>touch (ai) grass</ArrowLink>
+        <ArrowLink href='/touch-ai-grass'>touch (gen ai) grass</ArrowLink>
       </div>
     </>
   );
