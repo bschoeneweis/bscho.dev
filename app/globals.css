@@ -61,7 +61,8 @@ body:has(.touchGrassPage) .mainSection {
 @media (max-width: 700px) {
   body:has(.fixedPage) {
     overflow-y: hidden;
-    min-height: 100lvh;
+    min-height: 105dvh;
+    position: fixed;
   }
 }
 
