@@ -43,8 +43,7 @@ html::before {
   right: 0;
   bottom: 0;
   width: 100vw;
-  height: 100vh;
-  height: 100dvh;
+  min-height: 100dvh;
   z-index: -1;
   background-image: url('/images/rolling-hills.png');
   background-repeat: no-repeat;
@@ -79,7 +78,7 @@ body:has(.touchGrassPage) .mainLayout {
   max-width: none;
   margin: 0;
   padding: 0;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 body:has(.touchGrassPage) .mainSection {
