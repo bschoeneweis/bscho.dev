@@ -61,7 +61,7 @@ body:has(.touchGrassPage) .mainSection {
 @media (max-width: 700px) {
   body:has(.homePageHeader) {
     overflow-y: hidden;
-    min-height: 110dvh;
+    min-height: 110%;
   }
 }
 
