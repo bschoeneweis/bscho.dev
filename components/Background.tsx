@@ -4,6 +4,8 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import React from 'react'
 
+import styles from './Background.module.css';
+
 export const Background = () => {
   const pathname = usePathname();
   const isWriting = pathname.startsWith('/writing/');
@@ -11,7 +13,7 @@ export const Background = () => {
   const src = `/images/${bgImage}`;
 
   return (
-    <div className="background-root">
+    <div className={styles.backgroundRoot}>
       <Image
         alt="Background"
         src={src}
