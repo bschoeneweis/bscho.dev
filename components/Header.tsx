@@ -8,10 +8,17 @@ import { Avatar } from './Avatar'
 
 import styles from './Header.module.css'
 
-const getClass = (activePath: string, headerPath: string) =>
-  activePath === headerPath
-    ? 'active'
-    : 'linkHover';
+const getClass = (activePath: string, headerPath: string, matchPrefix = false) => {
+  if (matchPrefix) {
+    return activePath.startsWith(headerPath)
+      ? 'active'
+      : 'linkHover';
+  } else {
+    return activePath === headerPath
+      ? 'active'
+      : 'linkHover';
+  }
+};
 
 export const Header = () => {
   const pathname = usePathname();
@@ -32,7 +39,7 @@ export const Header = () => {
           </Link>
           <Link
             href={`/writing`}
-            className={ styles[getClass(pathname, '/writing')] }
+            className={ styles[getClass(pathname, '/writing', true)] }
           >
             writing
           </Link>
