@@ -46,6 +46,20 @@ body:has(.touchGrassPage) {
   background-color: #000;
 }
 
+body:has(.fishinPage) .mainLayout {
+  max-width: none;
+}
+
+body:has(.fishinPage) .mainSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  width: 100%;
+  max-width: none;
+}
+
 body:has(.touchGrassPage) .mainLayout {
   max-width: none;
   margin: 0;
