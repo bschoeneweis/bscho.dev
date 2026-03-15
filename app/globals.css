@@ -38,7 +38,8 @@ body {
 }
 
 body:has(.writingPostPage) {
-  background-image: url('/images/background.svg');
+  background-color: #1a1e25;
+  background-image: url('/images/topo.svg');
   font-family: 'ui-monospace', 'SFMono-Regular', 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'monospace';
 
   p {
@@ -162,7 +163,7 @@ blockquote {
   border-left: 4px solid #ff3d98;
   margin: 1.5em 5px;
   padding: 5px;
-  border-radius: 5px;
+  border-radius: 10px;
 }
 
 blockquote > p {
@@ -206,14 +207,13 @@ code[data-line-numbers-max-digits="3"] > [data-line]::before {
   width: 3rem;
 }
 
-code[data-theme="github-dark"] {
-  border: 1px solid rgb(255 255 255 / 10%);
-  border-radius: 5px;
-}
-
 figure[data-rehype-pretty-code-figure] {
   margin: 0;
   width: 100%;
+
+  pre {
+    border-radius: 5px;
+  }
 }
 
 /* hack for inline code */
