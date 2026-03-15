@@ -235,6 +235,13 @@ code[data-language="plaintext"] > [data-line]::before {
   display: none;
 }
 
+code[data-language="plaintext"] {
+  display: block;
+  width: max-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 li {
   margin-bottom: 2px;
 }
