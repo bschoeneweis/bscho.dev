@@ -59,13 +59,13 @@ An inverted index flips the forward index, and maps a set of terms to the docume
 
 Here we see each term mapped to the documents in which they appear (also notice that the index is sorted alphabetically by term,a small optimization).
 
-The set of matching documents (the structure in the right column) is often called a **posting list** (or postings).
+The set of matching documents (the structure in the right column) is often called a <u>posting list</u> (or postings).
 
-The other commonly associated structure with an inverted index is the **dictionary**.
+The other commonly associated structure with an inverted index is the <u>dictionary</u>.
 
 The dictionary is the unique set of the terms that exists in the index.  It contains pointers from each term to its respective posting list (for fast lookups).  Since the posting lists can be quite large, dictionaries are often kept in-memory and point to the location of the posting list on disk.
 
-Additional metadata such as **document frequency**, which tells us how many documents contain each term (also equal to the length of the posting list), may also be stored on the dictionary.  Document frequency can be helpful for ranking our documents after retrieval, which we will discuss more in a bit.
+Additional metadata such as <u>document frequency</u>, which tells us how many documents contain each term (also equal to the length of the posting list), may also be stored on the dictionary.  Document frequency can be helpful for ranking our documents after retrieval, which we will discuss more in a bit.
 
 #### Searching
 Instead of the full index scan that needs to occur with the forward index, we can now do a term-lookup in approximately constant time.  These faster lookups generally come at the cost of slower write speeds due to the complexity of the indexing (we'll dive into this later), but the faster reads generally outweigh the costs here.
@@ -85,11 +85,11 @@ We can do the same for `OR` queries: `"rings" OR "fellowship"` by taking the uni
 Ranking is the last topic we'll briefly cover before jumping into some code.  The lookups using our structure above help us to determine _which_ documents match given a term(s), but it doesn't tell us _how well_ they match (with respect to the rest of our data) to help us pick certain documents over other when retrieving.
 
 ##### Recall and precision
-Before diving into ranking algorithms, it helps to discuss two fundamental terms in search: **recall** and **precision** (more in-depth definitions [here](https://en.wikipedia.org/wiki/Precision_and_recall)).
+Before diving into ranking algorithms, it helps to discuss two fundamental terms in search: <u>recall</u> and <u>precision</u> (more in-depth definitions [here](https://en.wikipedia.org/wiki/Precision_and_recall)).
 
 tl;dr is that:
-- **Recall** is the proportion of relevant documents that were successfully retrieved.  Said otherwise, did we find all the documents that matter?
-- **Precision** is the proportion of retrieved documents that are actually relevant.  Said otherwise, are the documents we returned, correct?
+- <u>Recall</u> is the proportion of relevant documents that were successfully retrieved.  Said otherwise, did we find all the documents that matter?
+- <u>Precision</u> is the proportion of retrieved documents that are actually relevant.  Said otherwise, are the documents we returned, correct?
 
 High recall means finding most of the relevant documents, even if some bad or irrelevant ones slip through.
 
@@ -99,13 +99,13 @@ Balancing recall and precision is an art, but generally search systems aim to _r
 
 ##### TF-IDF
 
-One of the most fundamental ranking algorithms used in search is [TF-IDF](https://en.wikipedia.org/wiki/Tf%E2%80%93idf), or **Term Frequency-Inverse Document Frequency**.
+One of the most fundamental ranking algorithms used in search is [TF-IDF](https://en.wikipedia.org/wiki/Tf%E2%80%93idf), or <u>Term Frequency-Inverse Document Frequency</u>.
 
 This algorithm (while relatively simple) tries to tell us how important a term is in a document, across a collection or index of documents (also called a corpus).  The mathematics can be seen in the link above, but to provide a quick understanding, we can look at TF-IDF in two parts.
 
-The first part of the algorithm is the **Term Frequency**.  This is a measurement of how often a term appears within a document.  Generally, the more often a term appears, the more important it is.
+The first part of the algorithm is the <u>Term Frequency</u>.  This is a measurement of how often a term appears within a document.  Generally, the more often a term appears, the more important it is.
 
-The second part is the **Inverse Document Frequency**.  This is a measurement of how often a term appears across the entire collection of documents.  In contrast, the _less_ a term appears across the corpus, the more significant it is.
+The second part is the <u>Inverse Document Frequency</u>.  This is a measurement of how often a term appears across the entire collection of documents.  In contrast, the _less_ a term appears across the corpus, the more significant it is.
 
 For example, we can calculate the TF-IDF for two terms: `rings` and `fellowship` across a corpus of size `N = 4`.
 
@@ -214,9 +214,9 @@ let documents = vec![
 ```
 
 #### Tokenization
-An important part of indexing is **tokenization**.
+An important part of indexing is <u>tokenization</u>.
 
-Tokenization breaks the text into individual search "units" (usually called **tokens**), and normalizes each token for a consistent search experience.
+Tokenization breaks the text into individual search "units" (usually called <u>tokens</u>), and normalizes each token for a consistent search experience.
 
 This normalization could include operations like:
 - Applying consistent casing
