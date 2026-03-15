@@ -1,6 +1,7 @@
 .linkList {
   display: flex;
   flex-wrap: wrap;
+  overflow-y: scroll;
 }
 
 .linkList svg {
