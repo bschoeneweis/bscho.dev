@@ -7,13 +7,29 @@
   --text-underline-offset: 3px;
   --text-underline-thickness: 0.75px;
   --text-shadow: 0 2px 2px rgba(0, 0, 0, 0.35);
+  --page-background-color: #88906c;
+  --page-background-image: url('/images/rolling-hills.png');
 }
 
 * {
   box-sizing: border-box;
 }
 
-html,
+html {
+  max-width: 100vw;
+  overflow-x: hidden;
+  letter-spacing: .025em;
+  line-height: 1.5;
+  font-size: 1rem;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  padding: 0;
+  margin: 0;
+  min-height: 100%;
+  background-color: var(--page-background-color);
+}
+
 body {
   max-width: 100vw;
   overflow-x: hidden;
@@ -30,15 +46,26 @@ body {
   margin: 0;
   color: white;
   text-shadow: var(--text-shadow);
-  background-image: url('/images/rolling-hills.png');
+  background: transparent;
+  isolation: isolate;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--page-background-color);
+  background-image: var(--page-background-image);
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center top;
-  background-attachment: fixed;
 }
 
 body:has(.writingPostPage) {
-  background-image: url('/images/background.svg');
+  --page-background-color: #1c2633;
+  --page-background-image: url('/images/background.svg');
   font-family: 'ui-monospace', 'SFMono-Regular', 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'monospace';
 
   p {
@@ -51,8 +78,8 @@ body:has(.writingPostPage) {
 }
 
 body:has(.touchGrassPage) {
-  background-image: none;
-  background-color: #000;
+  --page-background-color: #000;
+  --page-background-image: none;
 }
 
 body:has(.touchGrassPage) .mainLayout {
@@ -71,6 +98,12 @@ body:has(.touchGrassPage) .mainSection {
 @media (max-width: 700px) {
   body:has(.fixedPage) {
     overflow-y: hidden;
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+  body {
+    min-height: -webkit-fill-available;
   }
 }
 
