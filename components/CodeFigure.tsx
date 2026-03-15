@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { type ComponentPropsWithoutRef, useEffect, useRef, useState } from "react";
+import { type ComponentPropsWithoutRef, useEffect, useRef, useState } from 'react';
 
-type FigureProps = ComponentPropsWithoutRef<"figure">;
+type FigureProps = ComponentPropsWithoutRef<'figure'>;
 const MIN_COPY_BUTTON_HEIGHT = 96;
 
 export const CodeFigure = ({ children, ...props }: FigureProps) => {
@@ -14,17 +14,17 @@ export const CodeFigure = ({ children, ...props }: FigureProps) => {
   useEffect(() => {
     const figure = figureRef.current;
 
-    if (!figure || props["data-rehype-pretty-code-figure"] === undefined) {
+    if (!figure || (props as any)['data-rehype-pretty-code-figure'] === undefined) {
       setCopyableCode(null);
       setShowCopyButton(false);
       return;
     }
 
-    const codeElement = figure.querySelector("code[data-language]");
-    const preElement = figure.querySelector("pre");
-    const language = codeElement?.getAttribute("data-language");
+    const codeElement = figure.querySelector('code[data-language]');
+    const preElement = figure.querySelector('pre');
+    const language = codeElement?.getAttribute('data-language');
 
-    if (!codeElement || !preElement || language === "plaintext") {
+    if (!codeElement || !preElement || language === 'plaintext') {
       setCopyableCode(null);
       setShowCopyButton(false);
       return;
@@ -68,9 +68,9 @@ export const CodeFigure = ({ children, ...props }: FigureProps) => {
           type="button"
           className="code-copy-button"
           onClick={handleCopy}
-          aria-label={copied ? "Code copied" : "Copy code"}
+          aria-label={copied ? 'Code copied' : 'Copy code'}
         >
-          {copied ? "Copied" : "Copy"}
+          {copied ? 'Copied' : 'Copy'}
         </button>
       ) : null}
     </figure>
