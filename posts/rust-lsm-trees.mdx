@@ -19,6 +19,8 @@ The write path of LSM trees does a good job showcasing how each core component f
 
 ### Writes
 
+<div className="asciiDiagram">
+
 ```plaintext
              ┌─────────┐
              │  Write  │
@@ -40,6 +42,8 @@ The write path of LSM trees does a good job showcasing how each core component f
                   ▼
            merged SSTable
 ```
+
+</div>
 
 When a write comes in, it is simultaneously written to a memtable and a [write-ahead log](https://en.wikipedia.org/wiki/Write-ahead_logging) (WAL).
 
@@ -91,6 +95,8 @@ The tradeoff is higher read amplification, since a key might appear in multiple 
 
 ### Reads
 
+<div className="asciiDiagram">
+
 ```plaintext
 
                 ┌────────┐
@@ -131,6 +137,8 @@ The tradeoff is higher read amplification, since a key might appear in multiple 
   └───────────────────────────────────┘
 
 ```
+
+</div>
 
 Now that we've covered the high-level pieces on the write side, we can outline what an incoming read looks like.
 

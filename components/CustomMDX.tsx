@@ -5,6 +5,7 @@ import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypePrettyCode from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
+import { CodeFigure } from "./CodeFigure";
 
 export const CustomMDX = (props: MDXRemoteProps) => (
   <MDXRemote
@@ -35,6 +36,7 @@ export const CustomMDX = (props: MDXRemoteProps) => (
           <table {...props} />
         </div>
       ),
+      figure: (props) => <CodeFigure {...props} />,
     }}
     options={{
       mdxOptions: {

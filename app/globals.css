@@ -179,7 +179,7 @@ blockquote > p {
 code {
   counter-reset: line;
   font-size: .8rem;
-  padding: 5px 0;
+  padding: 8px 2px;
   margin: 1.25rem 0;
   overflow-wrap: break-word;
   overflow-x: auto;
@@ -210,9 +210,42 @@ code[data-line-numbers-max-digits="3"] > [data-line]::before {
 figure[data-rehype-pretty-code-figure] {
   margin: 0;
   width: 100%;
+  position: relative;
 
   pre {
     border-radius: 5px;
+  }
+}
+
+.code-copy-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0);
+  color: #f8fafc;
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 0.45rem 0.7rem;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.code-copy-button:hover {
+  background: rgba(30, 41, 59, 0.98);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.code-copy-button:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .code-copy-button {
+    display: none;
   }
 }
 
@@ -235,7 +268,7 @@ code[data-language="plaintext"] > [data-line]::before {
   display: none;
 }
 
-code[data-language="plaintext"] {
+.asciiDiagram code[data-language="plaintext"] {
   display: block;
   width: max-content;
   margin-left: auto;
