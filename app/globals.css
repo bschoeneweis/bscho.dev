@@ -40,6 +40,10 @@ body {
 body:has(.writingPostPage) {
   background-color: #1a1e25;
   background-image: url('/images/topo.svg');
+  background-repeat: repeat-y;
+  background-position: center top;
+  background-size: max(1100px, 100vw) auto;
+  background-attachment: scroll;
   font-family: 'ui-monospace', 'SFMono-Regular', 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'monospace';
 
   p {
@@ -48,6 +52,13 @@ body:has(.writingPostPage) {
 
   header {
     font-family: 'GeistSans', 'GeistSans Fallback';
+  }
+}
+
+@media (max-width: 768px) {
+  body:has(.writingPostPage) {
+    background-size: 165vw auto;
+    background-position: center top;
   }
 }
 

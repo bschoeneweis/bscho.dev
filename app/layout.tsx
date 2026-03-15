@@ -12,12 +12,12 @@ import styles from './layout.module.css';
 export const metadata: Metadata = {
   title: 'Bradley Schoeneweis',
   description: 'Bradley Schoeneweis',
-  themeColor: '#d8d0b7',
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  themeColor: '#d8d0b7',
   viewportFit: 'cover',
 };
 
