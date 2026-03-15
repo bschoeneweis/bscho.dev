@@ -28,7 +28,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={GeistSans.className}>
-        <div className="bg-image"></div>
         <main className={`${styles.main} mainLayout`}>
           <Header/>
           <section className={`${styles.section} mainSection`}>

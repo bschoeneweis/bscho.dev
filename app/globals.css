@@ -7,7 +7,6 @@
   --text-underline-offset: 3px;
   --text-underline-thickness: 0.75px;
   --text-shadow: 0 2px 2px rgba(0, 0, 0, 0.35);
-  --bg-url: url('/images/rolling-hills.png');
 }
 
 * {
@@ -18,6 +17,7 @@ html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
+  overflow-y: scroll;
   letter-spacing: .025em;
   line-height: 1.5;
   font-size: 1rem;
@@ -30,25 +30,15 @@ body {
   margin: 0;
   color: white;
   text-shadow: var(--text-shadow);
-}
-
-.bg-image {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100dvh;
-  z-index: -1;
-  background-image: var(--bg-url);
+  background-image: url('/images/rolling-hills.png');
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center top;
-  background-attachment: scroll;
-  transform: translateZ(0);
+  background-attachment: fixed;
 }
 
 body:has(.writingPostPage) {
-  --bg-url: url('/images/background.svg');
+  background-image: url('/images/background.svg');
   font-family: 'ui-monospace', 'SFMono-Regular', 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'monospace';
 
   p {
