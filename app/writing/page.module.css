@@ -1,6 +1,8 @@
 .postList {
   margin-top: 1rem;
   overflow-y: scroll;
+  height: 100vw;
+  max-height: max-content;
 }
 
 .postListItem {
