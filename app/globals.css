@@ -102,7 +102,17 @@ article > ul > li > a {
   color: var(--link-blue);
 }
 
+article > ol > li > a {
+  color: var(--link-blue);
+}
+
 article > ul > li > a:hover {
+  text-decoration: underline;
+  text-underline-offset: var(--text-underline-offset);
+  text-decoration-thickness: var(--text-underline-thickness);
+}
+
+article > ol > li > a:hover {
   text-decoration: underline;
   text-underline-offset: var(--text-underline-offset);
   text-decoration-thickness: var(--text-underline-thickness);

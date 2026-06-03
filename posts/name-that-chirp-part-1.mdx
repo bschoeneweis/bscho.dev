@@ -1,5 +1,66 @@
 ---
-title: 'Name that chirp, part 1: Turning chirps into shapes'
+title: 'Name that chirp (part 1): Turning chirps into JSON'
 date: '2026-06-01'
 tags: ['rust', 'search']
 ---
+
+[My dog (Waffle)](/surprise) loves looking at birds on walks 🦆.
+
+![Waffle looking at a bird](/images/waffle-looking-at-bird.jpg)
+
+We also go on walks _a lot_, so naturally, I started looking at birds with him.
+
+Overwhelmed by the variety of species, even on our simple neighborhood walks, I started taking more of an interest into what we were looking at.
+
+One day, I stumbled upon the [Merlin Bird ID app](https://merlin.allaboutbirds.org/) (it's awesome), and now on just about every walk I take with Waffle, I start recording audio so I can learn more about the birds we encounter.  Our current record is 11 species in a 10 minute span.
+
+Simultaneously, I’ve found myself searching for a unique topic to write about.  Something technically interesting, but also a bit whimsical.  This fit the mold.
+
+## SotA (from what I could find)
+
+With a bit more research, I found how some projects (like [BirdNET]( https://birdnet.cornell.edu/)) manage this classification problem.
+
+Most solutions seem to boil down to:
+
+1. Normalizing sounds
+2. Building [spectrograms](https://en.wikipedia.org/wiki/Spectrogram)
+3. Pumping them through a [Convolutional Neural Network (CNN)](https://en.wikipedia.org/wiki/Convolutional_neural_network) (or an ensemble of them).
+
+Cornell Lab of Ornithology also hosts [BirdCLEF on Kaggle](https://www.kaggle.com/competitions/birdclef-2026), a competition to apply machine learning to under-studied species if you want to go deeper.
+
+## Name that chirp
+
+Outside of more dialed in ML approaches, the Merlin app likely has features like:
+- robust audio processing
+- geospatial and temporal filtering to narrow species
+- much more
+
+In the interest of keeping this to a two-part blog posts, I’m going to slim down the scope (and also to show readers what we'll look at).  So this will be an attempt at building a toy version of a search system for bird chirps (our process will have a few overlapping ideas from the [OG Shazam paper]( https://www.ee.columbia.edu/~dpwe/papers/Wang03-shazam.pdf)).
+
+### What we're _not_ going to do
+-	Build a CNN or apply any machine learning
+-	Advanced audio processing
+-	Real-time microphone input
+-	Any additional filtering with geocoding or species calendars
+
+### What we will do
+#### Turning chirps into JSON (part 1)
+Part 1 will focus on turning audio (from a `.wav` file) into searchable shapes (JSON) we'll call a **fingerprint** (talonprint?).
+
+At a high-level we'll:
+-	Normalize a WAV file
+-	Build a spectrogram
+-	Extract this into a “fingerprint” that becomes searchable
+
+#### Searching the flock (part 2)
+Part 2 will focus on building a simple search system for our audio shape against a small corpus.
+
+At a high-level we'll:
+-	Compare our “fingerprint” to a normalized corpus
+-	Build a ranking function
+-	See if our chirp match works 🤞
+
+At the end, we’ll walk away with a Rust (of course) CLI that can take in a `.wav` file and give us the closest bird match from our corpus.
+
+> As an acknowledgement, I’ll also be using data from [xeno-canto]( https://xeno-canto.org/), which is a great project for sharing wildlife sounds.
+
