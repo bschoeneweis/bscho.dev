@@ -2,6 +2,7 @@
 title: 'Name that chirp (part 1): Turning chirps into JSON'
 date: '2026-06-01'
 tags: ['rust', 'search']
+description: 'Using FFTs and spectrograms to extract frequency contours from a WAV file of a bird chirping.'
 ---
 
 [My dog (Waffle)](/surprise) loves looking at birds on walks 🦆.
@@ -52,6 +53,22 @@ At a high-level we'll:
 -	Build a spectrogram
 -	Extract this into a “fingerprint” that becomes searchable
 
+Why?  Because raw audio has far too many nuances to be compared 1:1.  The idea here will be to create an artifact that will keep most of the _shape_ of the sound, but discard a lot of the noise.
+
+We'll end up with something like:
+
+```json
+{
+  "id": "cardinal_001",
+  "label": "Northern Cardinal",
+  "source_url": "https://...",
+  "sample_rate": 16000,
+  "window_ms": 50,
+  "hop_ms": 25,
+  "frequencies_hz": [1820, 2050, 2310, 2440, 2260, 1900]
+}
+```
+
 #### Searching the flock (part 2)
 Part 2 will focus on building a simple search system for our audio shape against a small corpus.
 
@@ -62,5 +79,140 @@ At a high-level we'll:
 
 At the end, we’ll walk away with a Rust (of course) CLI that can take in a `.wav` file and give us the closest bird match from our corpus.
 
-> As an acknowledgement, I’ll also be using data from [xeno-canto]( https://xeno-canto.org/), which is a great project for sharing wildlife sounds.
+> As an acknowledgement, for our corpus we'll be using data from [xeno-canto](https://xeno-canto.org/), which is a great project for sharing wildlife sounds.  See the bottom of the article for all of the audio samples used.
 
+## Context
+
+What actually is a [WAV file](https://en.wikipedia.org/wiki/WAV)?  It's a file format that stores uncompressed (as opposed to MP3) audio.  The audio is typically encoded in a [Linear Pulse-Code Modulation (LPCM)](https://en.wikipedia.org/wiki/Pulse-code_modulation).
+
+For our purposes, that means the WAV file stores a sequence of amplitude samples captured at a fixed rate:
+
+```txt
+sample_rate = 44,100 Hz      // 44,100 measurements per second
+bit_depth   = 16-bit LPCM
+
+samples = [
+   327,
+   812,
+  1802,
+  1314,
+  -491,
+  -2140,
+  ...
+]
+```
+
+So when your phone microphone records a chirp (at the sample rate above), the recorder will capture 16,000 amplitude values per second, which each respresent the air pressure at that specific instant in time.
+
+This presents our main issue.
+
+Our array of samples is not very searchable, as the same species of a bird could produce chirps that would look very different when doing a direct comparison.  You see the parallels with vector search, where we transform text into embeddings so similar meanings end up close together, even when the words differ.
+
+## Loading audio with Rust
+
+We'll be using [hound](https://docs.rs/hound/latest/hound/) to decode our WAV files.
+
+First we can see metadata associated with our WAV files:
+
+```rust
+use hound::WavReader;
+
+let mut reader = WavReader::open("sample_chirp.wav")?;
+let spec = reader.spec();
+
+dbg!(spec);
+// spec = WavSpec {
+//     channels: 2,
+//     sample_rate: 44100,
+//     bits_per_sample: 16,
+//     sample_format: Int,
+// }
+```
+
+> Intentionally, all of the files we'll be processing will have the same `WavSpec`, otherwise we would need to do a bit more preprocessing.
+
+This spec tells us our sample rate, which we talked about above, and the format (16-bit ints).  We also can see that we have 2-channel audio ([stereo vs. mono](https://www.sonos.com/en-us/blog/mono-vs-stereo-sound)).
+
+Given these details, we want to do two transformations:
+1. Map our 16-bit samples to floats (`f32`)
+2. Downmix stereo audio into a single mono channel
+3. Normalize the recording's overall amplitude so quiet and loud recordings are more comparable
+
+```rust
+use anyhow::Result;
+use hound::WavReader;
+
+#[derive(Debug, Clone)]
+struct Audio {
+    sample_rate: u32,
+    samples: Vec<f32>,
+}
+
+pub const SAMPLE_RATE: u32 = 44_100;
+
+fn read_wav_as_mono_f32(path: &str) -> Result<Audio> {
+    let mut reader = WavReader::open(path)?;
+    let spec = reader.spec();
+
+    // validate that all of our WAV files have the same spec
+    anyhow::ensure!(
+        spec.channels == 2
+            && spec.sample_rate == SAMPLE_RATE
+            && spec.bits_per_sample == 16
+            && spec.sample_format == hound::SampleFormat::Int,
+        "expected stereo (2 channel) 44.1kHz 16-bit PCM WAV"
+    );
+
+    // convert our 16 bit sample values into f32 and normalize
+    // so our scale is [-1.0, 1.0]
+    let stereo = reader
+        .samples::<i16>()
+        .map(|s| s.map(|v| v as f32 / i16::MAX as f32))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    // downmix stereo -> mono by averaging each frame
+    let mut mono_samples = stereo
+        .chunks_exact(2)
+        .map(|frame| (frame[0] + frame[1]) / 2.0)
+        .collect::<Vec<_>>();
+
+    // normalize the recording's amplitude so recordings captured
+    // at different volumes are more comparable
+    let max = mono_samples
+        .iter()
+        .copied()
+        .map(f32::abs)
+        .fold(0.0, f32::max);
+
+    if max > 0.0 {
+        for sample in &mut mono_samples {
+            *sample /= max;
+        }
+    }
+
+    Ok(Audio {
+        sample_rate: SAMPLE_RATE,
+        samples: mono_samples,
+    })
+}
+```
+
+## 
+
+---
+
+Now that we have our chirp turned into JSON, the problem starts to look less like signal processing and more like search.  Stay tuned for part 2.
+
+## Resources
+There are links scattered throughout the article which were useful guides.
+
+### Bird songs
+Once again, thanks to [xeno-canto](https://xeno-canto.org/) for the recordings, I used the following WAV files:
+
+- [Whiskered Wren](https://xeno-canto.org/855521)
+- [Eurasian Scops Owl](https://xeno-canto.org/1059343)
+- [Thrush Nightingale](https://xeno-canto.org/1105587)
+- [Bay Wren](https://xeno-canto.org/957560)
+- [Lesser Whitethroat](https://xeno-canto.org/816200)
+- [Zitting Cisticola](https://xeno-canto.org/1134252)
+- [Zitting Cisticola](https://xeno-canto.org/1002754) (clip we searched with)
