@@ -1,9 +1,6 @@
 .linkList {
   display: flex;
   flex-wrap: wrap;
-  overflow-y: scroll;
-  height: 100vw;
-  max-height: max-content;
 }
 
 .linkList svg {

@@ -35,7 +35,7 @@
 
 .active {
   opacity: 1;
-  text-shadow: 0 3px 3px rgba(0, 0, 0, 0.35);
+  text-shadow: var(--text-shadow);
   text-decoration: underline;
   text-underline-offset: 5px;
   text-decoration-thickness: var(--text-underline-thickness);
