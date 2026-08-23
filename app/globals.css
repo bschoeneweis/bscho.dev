@@ -30,7 +30,17 @@ body {
   margin: 0;
   color: white;
   text-shadow: var(--text-shadow);
-  background-image: url('/images/rolling-hills.png');
+  background-color: #cbc7b3;
+  background-image:
+    url('/images/rolling-hills.png'),
+    linear-gradient(
+      180deg,
+      #cbc7b3 0%,
+      #9ca2a0 22%,
+      #676b3d 55%,
+      #35472f 78%,
+      #414434 100%
+    );
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center top;
