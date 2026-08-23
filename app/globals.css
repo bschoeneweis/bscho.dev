@@ -6,7 +6,7 @@
   --transition-duration: 0.2s;
   --text-underline-offset: 3px;
   --text-underline-thickness: 0.75px;
-  --text-shadow: 0 2px 2px rgba(0, 0, 0, 0.35);
+  --text-shadow: 0 2px 2px rgba(0, 0, 0, 0.28);
 }
 
 * {
@@ -32,6 +32,12 @@ body {
   text-shadow: var(--text-shadow);
   background-color: #cbc7b3;
   background-image:
+    linear-gradient(
+      180deg,
+      rgba(18, 22, 18, 0.06) 0%,
+      rgba(18, 22, 18, 0.12) 55%,
+      rgba(18, 22, 18, 0.18) 100%
+    ),
     url('/images/rolling-hills.png'),
     linear-gradient(
       180deg,
@@ -41,10 +47,17 @@ body {
       #35472f 78%,
       #414434 100%
     );
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center top;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-size: cover, cover, cover;
+  background-position: center center, center center, center center;
   background-attachment: fixed;
+}
+
+@media (max-width: 700px) {
+  html,
+  body {
+    background-position: center top, center top, center top;
+  }
 }
 
 body:has(.writingPostPage) {
